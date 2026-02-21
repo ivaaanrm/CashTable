@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(uv add:*)",
+      "Bash(uv run:*)",
+      "Bash(cd /Users/ivanr/Developer/CashTable/frontend && npm install 2>&1)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
