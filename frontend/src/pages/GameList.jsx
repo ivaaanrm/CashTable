@@ -46,6 +46,7 @@ function ChevronRightIcon() {
 
 export default function GameList() {
   const [showNewGame, setShowNewGame] = useState(false)
+  const [gameToDelete, setGameToDelete] = useState(null)
   const queryClient = useQueryClient()
 
   const { data: games = [], isLoading, isError } = useQuery({
@@ -55,7 +56,10 @@ export default function GameList() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteGame,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['games'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['games'] })
+      setGameToDelete(null)
+    },
   })
 
   if (isLoading) {
@@ -75,7 +79,7 @@ export default function GameList() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 max-w-lg mx-auto px-4 py-6">
+    <div className="min-h-screen bg-transparent max-w-lg mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -88,7 +92,7 @@ export default function GameList() {
         </div>
         <button
           onClick={() => setShowNewGame(true)}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-medium transition-colors cursor-pointer min-h-[44px] flex items-center gap-2 text-sm"
+          className="bg-gradient-to-b from-gold-400 to-gold-600 hover:from-gold-300 hover:to-gold-500 text-poker-dark px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer min-h-[44px] flex items-center gap-2 text-sm shadow-md"
         >
           <PlusIcon />
           Nueva
@@ -97,63 +101,64 @@ export default function GameList() {
 
       {/* Empty state */}
       {games.length === 0 ? (
-        <div className="text-center py-20">
-          <CardIcon />
-          <p className="text-slate-500 text-lg mt-4">Sin partidas todavía</p>
-          <p className="text-slate-600 text-sm mt-1">Crea tu primera partida para empezar</p>
+        <div className="text-center py-20 bg-black/20 backdrop-blur-sm border-2 border-dashed border-poker-light/40 rounded-2xl">
+          <CardIcon className="mx-auto opacity-50 text-poker-light" />
+          <p className="text-emerald-200/50 text-lg uppercase tracking-widest font-bold mt-4">Sin partidas</p>
+          <p className="text-emerald-200/40 text-sm mt-2">Crea tu primera partida para empezar</p>
           <button
             onClick={() => setShowNewGame(true)}
-            className="mt-6 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-medium transition-colors cursor-pointer min-h-[44px] inline-flex items-center gap-2"
+            className="mt-6 bg-gradient-to-b from-gold-400 to-gold-600 hover:from-gold-300 hover:to-gold-500 text-poker-dark px-6 py-3 rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer min-h-[44px] inline-flex items-center gap-2 shadow-lg"
           >
             <PlusIcon />
             Nueva partida
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {games.map((game) => (
             <div
               key={game.id}
-              className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden"
+              className="bg-poker-dark/80 backdrop-blur-md rounded-2xl border-2 border-poker-light/20 overflow-hidden hover:border-gold-500/50 hover:shadow-lg hover:shadow-gold-900/10 hover:-translate-y-0.5 transition-all relative"
             >
+              <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
               <Link
                 to={game.status === 'closed' ? `/games/${game.id}/settlement` : `/games/${game.id}`}
-                className="flex items-center gap-3 p-4 hover:bg-slate-750 transition-colors cursor-pointer"
+                className="flex items-center gap-3 p-4 hover:bg-white/5 transition-colors cursor-pointer relative z-10"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="font-semibold text-slate-100 truncate">{game.name}</h2>
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <h2 className="font-bold text-lg text-slate-100 truncate tracking-wide flex items-center gap-2">
+                      <span className="w-1.5 h-5 bg-gold-500 rounded-sm inline-block" />
+                      {game.name}
+                    </h2>
                     <span
-                      className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        game.status === 'active'
-                          ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800'
-                          : 'bg-slate-700 text-slate-400 border border-slate-600'
-                      }`}
+                      className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider shadow-sm ${game.status === 'active'
+                          ? 'bg-poker-light/80 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-slate-800/80 text-slate-400 border border-slate-700/50'
+                        }`}
                     >
                       {game.status === 'active' ? 'Activa' : 'Cerrada'}
                     </span>
                   </div>
-                  <p className="text-slate-500 text-sm mt-0.5">
+                  <p className="text-emerald-100/60 text-sm flex items-center gap-1.5">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 border border-gray-600 shadow-[inset_0_1px_rgba(255,255,255,0.4)]" />
+                    <span className="font-mono font-medium text-slate-200">{game.chip_value}€</span>/ficha
+                    <span className="mx-1 text-poker-light">·</span>
                     {formatDate(game.created_at)}
-                    <span className="mx-1.5 text-slate-700">·</span>
-                    <span className="font-mono">{game.chip_value}€</span>/ficha
                   </p>
                 </div>
-                <ChevronRightIcon />
+                <div className="bg-black/20 p-2 rounded-full text-slate-400">
+                  <ChevronRightIcon />
+                </div>
               </Link>
 
-              <div className="px-4 pb-3 flex justify-end border-t border-slate-700/50">
+              <div className="px-4 pb-3 flex justify-end border-t border-poker-light/20 relative z-10 pt-3 mt-1 bg-black/10">
                 <button
-                  onClick={() => {
-                    if (confirm(`¿Borrar "${game.name}"? Esta acción no se puede deshacer.`)) {
-                      deleteMutation.mutate(game.id)
-                    }
-                  }}
-                  disabled={deleteMutation.isPending}
-                  className="text-slate-600 hover:text-red-400 transition-colors cursor-pointer text-xs min-h-[44px] px-2 flex items-center gap-1.5 disabled:opacity-50"
+                  onClick={() => setGameToDelete(game)}
+                  className="text-slate-500 hover:text-chip-red transition-colors cursor-pointer text-xs font-bold uppercase tracking-wider min-h-[44px] px-3 py-1 flex items-center gap-1.5 rounded-lg hover:bg-black/20"
                 >
                   <TrashIcon />
-                  Borrar
+                  Borrar Partida
                 </button>
               </div>
             </div>
@@ -162,6 +167,40 @@ export default function GameList() {
       )}
 
       {showNewGame && <NewGameModal onClose={() => setShowNewGame(false)} />}
+
+      {/* Custom Deletion Modal */}
+      {gameToDelete && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={(e) => e.target === e.currentTarget && setGameToDelete(null)}
+        >
+          <div className="bg-poker-dark/95 backdrop-blur-xl rounded-2xl w-full max-w-sm border border-chip-red/30 shadow-2xl shadow-black animate-slide-up p-6 text-center">
+            <div className="w-12 h-12 bg-red-950/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-chip-red/20 shadow-inner">
+              <TrashIcon className="w-6 h-6 text-chip-red" />
+            </div>
+            <h2 className="text-xl font-bold tracking-wide text-slate-100 mb-2">Borrar Partida</h2>
+            <p className="text-emerald-100/70 text-sm mb-6">
+              ¿Estás seguro de que deseas borrar la partida <span className="text-white font-semibold">"{gameToDelete.name}"</span>?
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setGameToDelete(null)}
+                className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl font-bold uppercase tracking-wider transition-colors min-h-[44px]"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate(gameToDelete.id)}
+                disabled={deleteMutation.isPending}
+                className="flex-1 py-3 bg-gradient-to-b from-chip-red to-red-800 hover:from-red-500 hover:to-chip-red disabled:opacity-50 text-white rounded-xl font-bold uppercase tracking-wider transition-colors min-h-[44px] shadow-md shadow-red-900/30"
+              >
+                {deleteMutation.isPending ? 'Borrando...' : 'Borrar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

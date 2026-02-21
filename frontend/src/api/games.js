@@ -31,7 +31,8 @@ export async function closeGame(id) {
 export async function deleteGame(id) {
   const res = await fetch(`${BASE}/games/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('Error al borrar la partida')
-  return res.json()
+  // DELETE returns 204 No Content, so we don't try to parse JSON
+  return true
 }
 
 export async function getSettlement(id) {

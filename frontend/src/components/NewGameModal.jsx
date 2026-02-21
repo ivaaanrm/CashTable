@@ -34,23 +34,24 @@ export default function NewGameModal({ onClose }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4 animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-slate-800 rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-slate-100">Nueva partida</h2>
+      <div className="bg-poker-dark/95 backdrop-blur-xl rounded-2xl w-full max-w-md border border-poker-light/30 shadow-2xl shadow-black animate-slide-up">
+        <div className="flex items-center justify-between p-5 border-b border-poker-light/20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
+          <h2 className="text-xl font-bold tracking-wide text-slate-100 relative z-10">Nueva partida</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-slate-700"
+            className="text-slate-400 hover:text-white transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-white/10 relative z-10"
             aria-label="Cerrar"
           >
             <CloseIcon />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
           <div>
-            <label htmlFor="game-name" className="block text-sm font-medium text-slate-300 mb-1.5">
+            <label htmlFor="game-name" className="block text-xs font-bold uppercase tracking-wide text-emerald-200/50 mb-1.5">
               Nombre de la partida
             </label>
             <input
@@ -59,12 +60,12 @@ export default function NewGameModal({ onClose }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej: Viernes noche"
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 transition-all shadow-inner font-medium"
               autoFocus
             />
           </div>
           <div>
-            <label htmlFor="chips-per-euro" className="block text-sm font-medium text-slate-300 mb-1.5">
+            <label htmlFor="chips-per-euro" className="block text-xs font-bold uppercase tracking-wide text-emerald-200/50 mb-1.5">
               Fichas por euro
             </label>
             <input
@@ -74,33 +75,33 @@ export default function NewGameModal({ onClose }) {
               onChange={(e) => setChipsPerEuro(e.target.value)}
               min="1"
               step="1"
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-slate-100 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-gold-400 font-mono text-xl font-bold focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 transition-all shadow-inner"
             />
             {chipValue && (
-              <p className="text-slate-500 text-xs mt-1.5 font-mono">
+              <p className="text-emerald-100/60 text-xs mt-2 font-mono font-medium">
                 1€ = {chipsNum} ficha{chipsNum !== 1 ? 's' : ''} · 1 ficha = {chipValue.toFixed(4).replace(/\.?0+$/, '')}€
               </p>
             )}
           </div>
 
           {mutation.isError && (
-            <p className="text-red-400 text-sm" role="alert">
+            <p className="text-chip-red text-sm font-medium bg-chip-red/10 p-2 rounded-lg border border-chip-red/20 text-center" role="alert">
               {mutation.error.message}
             </p>
           )}
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 px-4 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl font-medium transition-colors cursor-pointer min-h-[44px]"
+              className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl font-bold uppercase tracking-wider transition-colors cursor-pointer min-h-[44px]"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={mutation.isPending || !name.trim() || !chipValue}
-              className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors cursor-pointer min-h-[44px]"
+              className="flex-[1.5] py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed text-poker-dark rounded-xl font-bold uppercase tracking-wider transition-all shadow-md cursor-pointer min-h-[44px] bg-gradient-to-b from-gold-400 to-gold-600 hover:from-gold-300 hover:to-gold-500"
             >
               {mutation.isPending ? 'Creando...' : 'Crear partida'}
             </button>
