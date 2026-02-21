@@ -215,8 +215,8 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
                   }}
                   disabled={isClosed}
                   className={`font-mono text-5xl font-bold text-slate-100 tabular-nums px-4 py-2 border border-transparent rounded-xl transition-all ${!isClosed
-                      ? 'hover:bg-white/5 hover:border-white/10 hover:shadow-inner cursor-pointer'
-                      : 'cursor-default'
+                    ? 'hover:bg-white/5 hover:border-white/10 hover:shadow-inner cursor-pointer'
+                    : 'cursor-default'
                     }`}
                   aria-label={!isClosed ? 'Editar fichas' : undefined}
                 >
@@ -308,46 +308,57 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
 
           {/* Transaction history */}
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">
               Movimientos
             </p>
             {isLoading ? (
               <p className="text-slate-500 text-sm text-center py-4">Cargando...</p>
             ) : transactions.length === 0 ? (
-              <p className="text-slate-600 text-sm text-center py-4">Sin movimientos</p>
+              <p className="text-emerald-100/30 text-sm text-center py-6 font-medium">Sin movimientos</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {transactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center gap-3 bg-slate-700/40 rounded-lg px-3 py-2.5"
+                    className="flex items-center justify-between p-3.5 bg-black/20 rounded-xl border border-white/5 shadow-inner hover:bg-black/30 transition-colors"
                   >
-                    <span
-                      className={`flex-shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${tx.type === 'buy_in'
-                          ? 'bg-emerald-900/60 text-emerald-400'
-                          : 'bg-red-900/60 text-red-400'
-                        }`}
-                    >
-                      {tx.type === 'buy_in' ? 'Buy-in' : 'Cash-out'}
-                    </span>
-                    <span className="font-mono text-slate-100 font-medium flex-1">
-                      {tx.chips} fichas
-                    </span>
-                    <span className="text-slate-600 text-xs">{formatTime(tx.created_at)}</span>
-                    {!isClosed && (
-                      <button
-                        onClick={() => {
-                          if (confirm('¿Anular este movimiento?')) {
-                            deleteTransactionMutation.mutate(tx.id)
-                          }
-                        }}
-                        disabled={deleteTransactionMutation.isPending}
-                        className="text-slate-600 hover:text-red-400 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-50"
-                        aria-label="Anular movimiento"
+                    <div>
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1 shadow-sm ${tx.type === 'buy_in'
+                          ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-red-950/40 text-chip-red border border-red-500/20'
+                          }`}
                       >
-                        <TrashIcon />
-                      </button>
-                    )}
+                        {tx.type === 'buy_in' ? 'Buy-in' : 'Cash-out'}
+                      </span>
+                      <p className="text-slate-300 font-mono text-lg font-bold flex items-center gap-1.5 mt-1">
+                        <span className={`inline-block w-2 h-2 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.4)] ${tx.type === 'buy_in' ? 'bg-gradient-to-br from-gray-300 to-gray-500 border border-gray-600' : 'bg-gradient-to-br from-red-400 to-chip-red border border-red-800'}`} />
+                        {tx.chips} <span className="text-emerald-200/40 text-xs font-medium ml-1">({(tx.chips * chipValue).toFixed(2)}€)</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-slate-500 text-xs hidden sm:block">
+                        {new Date(tx.created_at).toLocaleTimeString('es-ES', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                      {!isClosed && (
+                        <button
+                          onClick={() => {
+                            if (confirm('¿Anular este movimiento?')) {
+                              deleteTransactionMutation.mutate(tx.id)
+                            }
+                          }}
+                          disabled={deleteTransactionMutation.isPending}
+                          className="p-2 text-slate-500 hover:text-chip-red hover:bg-red-950/30 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                          aria-label="Anular movimiento"
+                        >
+                          <TrashIcon />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
