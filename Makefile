@@ -1,4 +1,4 @@
-.PHONY: backend frontend dev test install
+.PHONY: backend frontend dev test install docker docker-down
 
 backend:
 	uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
@@ -18,3 +18,9 @@ install:
 	uv add fastapi "uvicorn[standard]" sqlalchemy
 	uv add --dev pytest
 	cd frontend && npm install
+
+docker:
+	docker compose up --build
+
+docker-down:
+	docker compose down
