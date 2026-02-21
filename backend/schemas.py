@@ -15,6 +15,17 @@ class PlayerCreate(BaseModel):
     name: str
 
 
+class PlayerUpdateChips(BaseModel):
+    actual_chips: int
+
+    @field_validator("actual_chips")
+    @classmethod
+    def chips_must_be_non_negative(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("actual_chips must be >= 0")
+        return v
+
+
 class TransactionCreate(BaseModel):
     game_id: int
     player_id: int
@@ -50,6 +61,7 @@ class PlayerStats(BaseModel):
     buy_in_chips: int
     cash_out_chips: int
     chips_in_play: int
+    actual_chips: int | None
     money_spent: float
     net_balance: float
 
@@ -95,7 +107,9 @@ class TransferOut(BaseModel):
 class PlayerSummary(BaseModel):
     id: int
     name: str
-    net_balance: float
+    money_spent: float
+    final_value: float
+    profit_loss: float
 
 
 class SettlementOut(BaseModel):

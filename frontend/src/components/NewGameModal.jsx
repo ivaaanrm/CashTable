@@ -12,8 +12,11 @@ function CloseIcon() {
 
 export default function NewGameModal({ onClose }) {
   const [name, setName] = useState('')
-  const [chipValue, setChipValue] = useState('1')
+  const [chipsPerEuro, setChipsPerEuro] = useState('1')
   const queryClient = useQueryClient()
+
+  const chipsNum = parseFloat(chipsPerEuro)
+  const chipValue = chipsNum > 0 ? 1 / chipsNum : null
 
   const mutation = useMutation({
     mutationFn: createGame,
@@ -25,8 +28,8 @@ export default function NewGameModal({ onClose }) {
 
   function handleSubmit(e) {
     e.preventDefault()
-    if (!name.trim()) return
-    mutation.mutate({ name: name.trim(), chip_value: parseFloat(chipValue) })
+    if (!name.trim() || !chipValue) return
+    mutation.mutate({ name: name.trim(), chip_value: chipValue })
   }
 
   return (
@@ -61,18 +64,23 @@ export default function NewGameModal({ onClose }) {
             />
           </div>
           <div>
-            <label htmlFor="chip-value" className="block text-sm font-medium text-slate-300 mb-1.5">
-              Valor por ficha (€)
+            <label htmlFor="chips-per-euro" className="block text-sm font-medium text-slate-300 mb-1.5">
+              Fichas por euro
             </label>
             <input
-              id="chip-value"
+              id="chips-per-euro"
               type="number"
-              value={chipValue}
-              onChange={(e) => setChipValue(e.target.value)}
-              min="0.01"
-              step="0.01"
+              value={chipsPerEuro}
+              onChange={(e) => setChipsPerEuro(e.target.value)}
+              min="1"
+              step="1"
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-slate-100 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
             />
+            {chipValue && (
+              <p className="text-slate-500 text-xs mt-1.5 font-mono">
+                1€ = {chipsNum} ficha{chipsNum !== 1 ? 's' : ''} · 1 ficha = {chipValue.toFixed(4).replace(/\.?0+$/, '')}€
+              </p>
+            )}
           </div>
 
           {mutation.isError && (
@@ -91,7 +99,7 @@ export default function NewGameModal({ onClose }) {
             </button>
             <button
               type="submit"
-              disabled={mutation.isPending || !name.trim()}
+              disabled={mutation.isPending || !name.trim() || !chipValue}
               className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors cursor-pointer min-h-[44px]"
             >
               {mutation.isPending ? 'Creando...' : 'Crear partida'}

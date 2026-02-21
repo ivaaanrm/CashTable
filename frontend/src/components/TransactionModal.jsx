@@ -10,29 +10,56 @@ function CloseIcon() {
   )
 }
 
-export default function TransactionModal({ gameId, players, onClose }) {
-  const [playerId, setPlayerId] = useState(players[0]?.id ?? '')
-  const [type, setType] = useState('buy_in')
-  const [chips, setChips] = useState('')
+export default function TransactionModal({
+  gameId,
+  players,
+  onClose,
+  defaultPlayerId = null,
+  defaultType = 'buy_in',
+  defaultChips = '',
+  lockedPlayerId = null,
+}) {
+  const [playerId, setPlayerId] = useState(
+    lockedPlayerId ?? defaultPlayerId ?? players[0]?.id ?? ''
+  )
+  const [type, setType] = useState(defaultType)
+  const [chips, setChips] = useState(defaultChips !== '' ? String(defaultChips) : '')
   const queryClient = useQueryClient()
+
+  const selectedPlayer = players.find((p) => p.id === parseInt(playerId))
+  const currentChips = selectedPlayer
+    ? (selectedPlayer.actual_chips != null ? selectedPlayer.actual_chips : selectedPlayer.chips_in_play)
+    : 0
+  const maxChips = type === 'cash_out' && selectedPlayer ? currentChips : undefined
 
   const mutation = useMutation({
     mutationFn: addTransaction,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['game', gameId] })
+      queryClient.invalidateQueries({ queryKey: ['player-transactions', parseInt(playerId)] })
       onClose()
     },
   })
 
   function handleSubmit(e) {
     e.preventDefault()
-    if (!chips || !playerId) return
+    const chipsVal = parseInt(chips)
+    if (!chips || !playerId || isNaN(chipsVal)) return
     mutation.mutate({
       game_id: gameId,
       player_id: parseInt(playerId),
       type,
-      chips: parseInt(chips),
+      chips: chipsVal,
     })
+  }
+
+  function handleChipsChange(e) {
+    const val = e.target.value
+    if (maxChips !== undefined && parseInt(val) > maxChips) {
+      setChips(String(maxChips))
+    } else {
+      setChips(val)
+    }
   }
 
   return (
@@ -52,24 +79,33 @@ export default function TransactionModal({ gameId, players, onClose }) {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {/* Player selector */}
-          <div>
-            <label htmlFor="player-select" className="block text-sm font-medium text-slate-300 mb-1.5">
-              Jugador
-            </label>
-            <select
-              id="player-select"
-              value={playerId}
-              onChange={(e) => setPlayerId(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors cursor-pointer"
-            >
-              {players.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Player — locked or selectable */}
+          {lockedPlayerId ? (
+            <div>
+              <p className="block text-sm font-medium text-slate-300 mb-1.5">Jugador</p>
+              <div className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-slate-100 font-medium">
+                {selectedPlayer?.name ?? '—'}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="player-select" className="block text-sm font-medium text-slate-300 mb-1.5">
+                Jugador
+              </label>
+              <select
+                id="player-select"
+                value={playerId}
+                onChange={(e) => setPlayerId(e.target.value)}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors cursor-pointer"
+              >
+                {players.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Type toggle */}
           <div>
@@ -88,7 +124,12 @@ export default function TransactionModal({ gameId, players, onClose }) {
               </button>
               <button
                 type="button"
-                onClick={() => setType('cash_out')}
+                onClick={() => {
+                  setType('cash_out')
+                  if (maxChips !== undefined && parseInt(chips) > maxChips) {
+                    setChips(String(maxChips))
+                  }
+                }}
                 className={`flex-1 py-3 text-sm font-medium transition-colors cursor-pointer min-h-[44px] ${
                   type === 'cash_out'
                     ? 'bg-red-600 text-white'
@@ -104,17 +145,26 @@ export default function TransactionModal({ gameId, players, onClose }) {
           <div>
             <label htmlFor="chips-input" className="block text-sm font-medium text-slate-300 mb-1.5">
               Cantidad de fichas
+              {type === 'cash_out' && maxChips !== undefined && (
+                <span className="ml-2 text-slate-500 font-normal">
+                  (máx. {maxChips})
+                </span>
+              )}
             </label>
             <input
               id="chips-input"
               type="number"
               value={chips}
-              onChange={(e) => setChips(e.target.value)}
+              onChange={handleChipsChange}
               min="1"
+              max={maxChips}
               placeholder="Ej: 100"
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
               autoFocus
             />
+            {type === 'cash_out' && maxChips === 0 && (
+              <p className="text-amber-500 text-xs mt-1">Este jugador no tiene fichas en juego.</p>
+            )}
           </div>
 
           {mutation.isError && (
@@ -133,7 +183,7 @@ export default function TransactionModal({ gameId, players, onClose }) {
             </button>
             <button
               type="submit"
-              disabled={mutation.isPending || !chips || !playerId}
+              disabled={mutation.isPending || !chips || !playerId || (type === 'cash_out' && maxChips === 0)}
               className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors cursor-pointer min-h-[44px]"
             >
               {mutation.isPending ? 'Guardando...' : 'Registrar'}

@@ -1,0 +1,298 @@
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { getPlayerTransactions, deletePlayer, updatePlayerChips } from '../api/players'
+import { deleteTransaction } from '../api/transactions'
+
+function CloseIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  )
+}
+
+function PlusIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+    </svg>
+  )
+}
+
+function formatTime(dateStr) {
+  return new Date(dateStr).toLocaleString('es-ES', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function PencilIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+    </svg>
+  )
+}
+
+export default function PlayerModal({ player, gameId, isClosed, onClose, onRegisterMovement }) {
+  const queryClient = useQueryClient()
+  const [editingChips, setEditingChips] = useState(false)
+  const [chipInput, setChipInput] = useState(player.actual_chips != null ? String(player.actual_chips) : String(player.chips_in_play))
+
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ['player-transactions', player.id],
+    queryFn: () => getPlayerTransactions(player.id),
+  })
+
+  const deleteTransactionMutation = useMutation({
+    mutationFn: deleteTransaction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['player-transactions', player.id] })
+      queryClient.invalidateQueries({ queryKey: ['game', gameId] })
+    },
+  })
+
+  const deletePlayerMutation = useMutation({
+    mutationFn: () => deletePlayer(player.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['game', gameId] })
+      onClose()
+    },
+  })
+
+  const updateChipsMutation = useMutation({
+    mutationFn: (chips) => updatePlayerChips(player.id, chips),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['game', gameId] })
+      setEditingChips(false)
+    },
+  })
+
+  const isPositive = player.net_balance > 0.01
+  const isNegative = player.net_balance < -0.01
+  const currentChips = player.actual_chips != null ? player.actual_chips : player.chips_in_play
+  const hasChipsInPlay = currentChips > 0
+  const pct = player.money_spent > 0.001
+    ? (player.net_balance / player.money_spent) * 100
+    : null
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-slate-800 rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl max-h-[85vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-slate-700 flex-shrink-0">
+          <h2 className="text-lg font-semibold text-slate-100">{player.name}</h2>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-slate-700"
+            aria-label="Cerrar"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 p-5 space-y-4">
+          {/* Stats grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-700/50 rounded-xl p-3">
+              <p className="text-slate-500 text-xs">Inversión</p>
+              <p className="font-mono font-bold text-slate-100 mt-0.5">{player.money_spent.toFixed(2)}€</p>
+              <p className="font-mono text-xs text-slate-400">{player.buy_in_chips} fichas</p>
+            </div>
+            <div className="bg-slate-700/50 rounded-xl p-3">
+              <p className="text-slate-500 text-xs">Fichas en juego</p>
+              {!isClosed && editingChips ? (
+                <div className="flex gap-1.5 mt-1">
+                  <input
+                    type="number"
+                    value={chipInput}
+                    onChange={(e) => setChipInput(e.target.value)}
+                    min="0"
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-slate-100 font-mono text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = parseInt(chipInput)
+                        if (!isNaN(val) && val >= 0) updateChipsMutation.mutate(val)
+                      }
+                      if (e.key === 'Escape') setEditingChips(false)
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      const val = parseInt(chipInput)
+                      if (!isNaN(val) && val >= 0) updateChipsMutation.mutate(val)
+                    }}
+                    disabled={updateChipsMutation.isPending}
+                    className="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50"
+                  >
+                    <CheckIcon />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <p className="font-mono font-bold text-slate-100">
+                    {player.actual_chips != null ? player.actual_chips : player.chips_in_play}
+                  </p>
+                  {!isClosed && (
+                    <button
+                      onClick={() => {
+                        setChipInput(String(player.actual_chips != null ? player.actual_chips : player.chips_in_play))
+                        setEditingChips(true)
+                      }}
+                      className="text-slate-500 hover:text-emerald-400 transition-colors cursor-pointer p-0.5"
+                      aria-label="Actualizar fichas"
+                    >
+                      <PencilIcon />
+                    </button>
+                  )}
+                </div>
+              )}
+              <p className="font-mono text-xs text-slate-400">cash-out: {player.cash_out_chips}</p>
+            </div>
+            <div className="bg-slate-700/50 rounded-xl p-3">
+              <p className="text-slate-500 text-xs">Profit / Loss</p>
+              <p
+                className={`font-mono font-bold mt-0.5 ${
+                  isPositive ? 'text-emerald-400' : isNegative ? 'text-red-400' : 'text-slate-400'
+                }`}
+              >
+                {isPositive ? '+' : ''}{player.net_balance.toFixed(2)}€
+              </p>
+            </div>
+            <div className="bg-slate-700/50 rounded-xl p-3">
+              <p className="text-slate-500 text-xs">Rentabilidad</p>
+              {pct !== null ? (
+                <p
+                  className={`font-mono font-bold mt-0.5 ${
+                    pct > 0.5 ? 'text-emerald-400' : pct < -0.5 ? 'text-red-400' : 'text-slate-400'
+                  }`}
+                >
+                  {pct > 0 ? '+' : ''}{pct.toFixed(1)}%
+                </p>
+              ) : (
+                <p className="font-mono font-bold text-slate-600 mt-0.5">—</p>
+              )}
+            </div>
+          </div>
+
+          {/* Actions (active game only) */}
+          {!isClosed && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  onClose()
+                  onRegisterMovement(player, 'buy_in')
+                }}
+                className="flex-1 py-2.5 bg-emerald-900/30 hover:bg-emerald-900/50 border border-emerald-800/50 text-emerald-400 rounded-xl font-medium transition-colors cursor-pointer min-h-[44px] text-sm flex items-center justify-center gap-1.5"
+              >
+                <PlusIcon />
+                Buy-in
+              </button>
+              {hasChipsInPlay && (
+                <button
+                  onClick={() => {
+                    onClose()
+                    onRegisterMovement(player, 'cash_out')
+                  }}
+                  className="flex-1 py-2.5 bg-red-600/20 hover:bg-red-600/30 border border-red-800/50 text-red-400 rounded-xl font-medium transition-colors cursor-pointer min-h-[44px] text-sm"
+                >
+                  Cash-out
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Transaction history */}
+          <div>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+              Movimientos
+            </p>
+            {isLoading ? (
+              <p className="text-slate-500 text-sm text-center py-4">Cargando...</p>
+            ) : transactions.length === 0 ? (
+              <p className="text-slate-600 text-sm text-center py-4">Sin movimientos</p>
+            ) : (
+              <div className="space-y-2">
+                {transactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="flex items-center gap-3 bg-slate-700/40 rounded-lg px-3 py-2.5"
+                  >
+                    <span
+                      className={`flex-shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${
+                        tx.type === 'buy_in'
+                          ? 'bg-emerald-900/60 text-emerald-400'
+                          : 'bg-red-900/60 text-red-400'
+                      }`}
+                    >
+                      {tx.type === 'buy_in' ? 'Buy-in' : 'Cash-out'}
+                    </span>
+                    <span className="font-mono text-slate-100 font-medium flex-1">
+                      {tx.chips} fichas
+                    </span>
+                    <span className="text-slate-600 text-xs">{formatTime(tx.created_at)}</span>
+                    {!isClosed && (
+                      <button
+                        onClick={() => {
+                          if (confirm('¿Anular este movimiento?')) {
+                            deleteTransactionMutation.mutate(tx.id)
+                          }
+                        }}
+                        disabled={deleteTransactionMutation.isPending}
+                        className="text-slate-600 hover:text-red-400 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-50"
+                        aria-label="Anular movimiento"
+                      >
+                        <TrashIcon />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer — delete player (only active, no transactions) */}
+        {!isClosed && transactions.length === 0 && (
+          <div className="p-5 border-t border-slate-700 flex-shrink-0">
+            <button
+              onClick={() => {
+                if (confirm(`¿Eliminar a ${player.name} de la partida?`)) {
+                  deletePlayerMutation.mutate()
+                }
+              }}
+              disabled={deletePlayerMutation.isPending}
+              className="w-full py-2.5 text-slate-600 hover:text-red-400 transition-colors cursor-pointer text-sm min-h-[44px] flex items-center justify-center gap-1.5 disabled:opacity-50"
+            >
+              <TrashIcon />
+              Eliminar jugador
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

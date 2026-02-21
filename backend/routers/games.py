@@ -23,14 +23,26 @@ def _compute_player_stats(player: Player, chip_value: float) -> PlayerStats:
     buy_in_chips = sum(t.chips for t in player.transactions if t.type == "buy_in")
     cash_out_chips = sum(t.chips for t in player.transactions if t.type == "cash_out")
     chips_in_play = buy_in_chips - cash_out_chips
+
+    # money_spent = total historical investment
     money_spent = buy_in_chips * chip_value
-    net_balance = chips_in_play * chip_value - money_spent
+
+    current_chips = (
+        player.actual_chips if player.actual_chips is not None else chips_in_play
+    )
+
+    # net_balance = what they have now + what they already took out - what they put in
+    virtual_value = current_chips * chip_value
+    cashed_out_value = cash_out_chips * chip_value
+    net_balance = (virtual_value + cashed_out_value) - money_spent
+
     return PlayerStats(
         id=player.id,
         name=player.name,
         buy_in_chips=buy_in_chips,
         cash_out_chips=cash_out_chips,
         chips_in_play=chips_in_play,
+        actual_chips=player.actual_chips,
         money_spent=money_spent,
         net_balance=net_balance,
     )
@@ -54,7 +66,10 @@ def list_games(db: Session = Depends(get_db)):
 def get_game(game_id: int, db: Session = Depends(get_db)):
     game = db.query(Game).filter(Game.id == game_id).first()
     if not game:
-        raise HTTPException(status_code=404, detail={"error": "NotFound", "message": f"Game {game_id} not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "NotFound", "message": f"Game {game_id} not found"},
+        )
 
     players_stats = [_compute_player_stats(p, game.chip_value) for p in game.players]
     return GameDetail(
@@ -72,9 +87,15 @@ def get_game(game_id: int, db: Session = Depends(get_db)):
 def close_game(game_id: int, db: Session = Depends(get_db)):
     game = db.query(Game).filter(Game.id == game_id).first()
     if not game:
-        raise HTTPException(status_code=404, detail={"error": "NotFound", "message": f"Game {game_id} not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "NotFound", "message": f"Game {game_id} not found"},
+        )
     if game.status == "closed":
-        raise HTTPException(status_code=409, detail={"error": "Conflict", "message": "Game is already closed"})
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "Conflict", "message": "Game is already closed"},
+        )
 
     game.status = "closed"
     game.closed_at = datetime.now(timezone.utc)
@@ -87,7 +108,10 @@ def close_game(game_id: int, db: Session = Depends(get_db)):
 def delete_game(game_id: int, db: Session = Depends(get_db)):
     game = db.query(Game).filter(Game.id == game_id).first()
     if not game:
-        raise HTTPException(status_code=404, detail={"error": "NotFound", "message": f"Game {game_id} not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "NotFound", "message": f"Game {game_id} not found"},
+        )
     db.delete(game)
     db.commit()
 
@@ -96,11 +120,17 @@ def delete_game(game_id: int, db: Session = Depends(get_db)):
 def get_settlement(game_id: int, db: Session = Depends(get_db)):
     game = db.query(Game).filter(Game.id == game_id).first()
     if not game:
-        raise HTTPException(status_code=404, detail={"error": "NotFound", "message": f"Game {game_id} not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "NotFound", "message": f"Game {game_id} not found"},
+        )
     if game.status == "active":
         raise HTTPException(
             status_code=409,
-            detail={"error": "Conflict", "message": "Cannot settle an active game. Close the game first."},
+            detail={
+                "error": "Conflict",
+                "message": "Cannot settle an active game. Close the game first.",
+            },
         )
 
     stats = [_compute_player_stats(p, game.chip_value) for p in game.players]
@@ -108,6 +138,20 @@ def get_settlement(game_id: int, db: Session = Depends(get_db)):
     transfers = calculate_settlement(balances)
 
     return SettlementOut(
-        player_summary=[PlayerSummary(id=s.id, name=s.name, net_balance=s.net_balance) for s in stats],
-        transfers=[TransferOut(from_player=t.from_player, to_player=t.to_player, amount=t.amount) for t in transfers],
+        player_summary=[
+            PlayerSummary(
+                id=s.id,
+                name=s.name,
+                money_spent=s.money_spent,
+                final_value=s.net_balance + s.money_spent,
+                profit_loss=s.net_balance,
+            )
+            for s in stats
+        ],
+        transfers=[
+            TransferOut(
+                from_player=t.from_player, to_player=t.to_player, amount=t.amount
+            )
+            for t in transfers
+        ],
     )

@@ -49,7 +49,7 @@ export default function Settlement() {
       lines.push('¡Todos en tablas! No hay transferencias.')
     } else {
       settlement.transfers.forEach((t) => {
-        lines.push(`${t.from} paga ${t.amount.toFixed(0)}€ a ${t.to}`)
+        lines.push(`${t.from_player} paga ${t.amount.toFixed(0)}€ a ${t.to_player}`)
       })
     }
 
@@ -152,9 +152,9 @@ export default function Settlement() {
             {settlement?.transfers.map((t, i) => (
               <div key={i} className="px-4 py-3 flex items-center gap-3">
                 <div className="flex-1 flex items-center gap-2 min-w-0">
-                  <span className="font-medium text-slate-100 truncate">{t.from}</span>
+                  <span className="font-medium text-slate-100 truncate">{t.from_player}</span>
                   <ArrowRightIcon />
-                  <span className="font-medium text-slate-100 truncate">{t.to}</span>
+                  <span className="font-medium text-slate-100 truncate">{t.to_player}</span>
                 </div>
                 <span className="font-mono font-bold text-red-400 flex-shrink-0">
                   {t.amount.toFixed(2)}€

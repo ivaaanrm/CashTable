@@ -25,6 +25,7 @@ class Player(Base):
     id = Column(Integer, primary_key=True, index=True)
     game_id = Column(Integer, ForeignKey("games.id", ondelete="CASCADE"), nullable=False)
     name = Column(String, nullable=False)
+    actual_chips = Column(Integer, nullable=True)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     game = relationship("Game", back_populates="players")
