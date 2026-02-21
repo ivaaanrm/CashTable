@@ -12,31 +12,34 @@ export default function PlayerCard({ player, isClosed, onClick, chipValue }) {
   return (
     <div
       onClick={onClick}
-      className="bg-slate-800 rounded-xl p-4 border border-slate-700 cursor-pointer hover:border-slate-500 transition-colors active:scale-[0.99]"
+      className="bg-poker-dark/80 backdrop-blur-md rounded-2xl p-4 border-2 border-poker-light/20 cursor-pointer hover:border-gold-500/50 hover:shadow-lg hover:shadow-gold-900/10 hover:-translate-y-0.5 transition-all active:scale-95 relative overflow-hidden"
     >
-      <div className="flex justify-between items-center gap-4">
+      {/* Decorative inner glow for the table seat effect */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+      <div className="flex justify-between items-center gap-4 relative z-10">
         {/* Left: name + stats */}
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-slate-100 truncate">{player.name}</h3>
-          <p className="text-slate-400 text-sm mt-0.5">
-            <span className="font-mono">{currentChips}</span> fichas
-            <span className="text-emerald-400/80 ml-1 text-xs font-mono">({virtualMoney.toFixed(2)}€)</span>
-            <span className="text-slate-600 mx-1.5">·</span>
-            inv. <span className="font-mono">{player.money_spent.toFixed(2)}€</span>
+          <h3 className="font-bold text-lg text-slate-100 truncate tracking-wide">{player.name}</h3>
+          <p className="text-emerald-100/60 text-sm mt-1 flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 border border-gray-600 shadow-[inset_0_1px_rgba(255,255,255,0.4)]" />
+            <span className="font-mono font-medium text-slate-200">{currentChips}</span>
+            <span className="text-emerald-400/80 text-xs font-mono">({virtualMoney.toFixed(2)}€)</span>
+            <span className="text-poker-light mx-1">·</span>
+            inv. <span className="font-mono text-slate-300">{player.money_spent.toFixed(2)}€</span>
           </p>
         </div>
 
         {/* Right: balance + % */}
-        <div className="text-right flex-shrink-0 flex flex-col items-end gap-0.5">
+        <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
           <span
-            className={`font-mono text-xl font-bold ${isPositive ? 'text-emerald-400' : isNegative ? 'text-red-400' : 'text-slate-400'
+            className={`font-mono text-2xl font-black drop-shadow-md tracking-tight ${isPositive ? 'text-emerald-400' : isNegative ? 'text-chip-red' : 'text-slate-400'
               }`}
           >
             {isPositive ? '+' : ''}{balance.toFixed(2)}€
           </span>
           {pct !== null && (
             <span
-              className={`text-xs font-mono ${isPositive ? 'text-emerald-600' : isNegative ? 'text-red-600' : 'text-slate-600'
+              className={`text-xs font-bold px-2 py-0.5 rounded-md ${isPositive ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-800/50' : isNegative ? 'bg-red-900/40 text-red-400 border border-red-800/50' : 'bg-slate-800 text-slate-400 border border-slate-700'
                 }`}
             >
               {isPositive ? '+' : ''}{pct}%
