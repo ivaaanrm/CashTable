@@ -262,6 +262,7 @@ export default function GameDetail() {
           player={selectedPlayer}
           gameId={gameId}
           isClosed={isClosed}
+          chipValue={game.chip_value}
           onClose={() => setSelectedPlayer(null)}
           onRegisterMovement={(player, type) => {
             setSelectedPlayer(null)

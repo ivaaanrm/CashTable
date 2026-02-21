@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getPlayerTransactions, deletePlayer, updatePlayerChips } from '../api/players'
 import { deleteTransaction } from '../api/transactions'
@@ -27,13 +27,12 @@ function PlusIcon() {
   )
 }
 
-function formatTime(dateStr) {
-  return new Date(dateStr).toLocaleString('es-ES', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+function MinusIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 12H4" />
+    </svg>
+  )
 }
 
 function PencilIcon() {
@@ -52,10 +51,37 @@ function CheckIcon() {
   )
 }
 
-export default function PlayerModal({ player, gameId, isClosed, onClose, onRegisterMovement }) {
+function formatTime(dateStr) {
+  return new Date(dateStr).toLocaleString('es-ES', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, onClose, onRegisterMovement }) {
   const queryClient = useQueryClient()
+  const serverChips = player.actual_chips != null ? player.actual_chips : player.chips_in_play
+  const [optimisticChips, setOptimisticChips] = useState(null)
+  const currentChips = optimisticChips != null ? optimisticChips : serverChips
   const [editingChips, setEditingChips] = useState(false)
-  const [chipInput, setChipInput] = useState(player.actual_chips != null ? String(player.actual_chips) : String(player.chips_in_play))
+  const [chipInput, setChipInput] = useState(String(currentChips))
+  const inputRef = useRef(null)
+
+  // Sync optimistic state when server data catches up
+  useEffect(() => {
+    if (optimisticChips != null && serverChips === optimisticChips) {
+      setOptimisticChips(null)
+    }
+  }, [serverChips, optimisticChips])
+
+  useEffect(() => {
+    if (editingChips && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [editingChips])
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['player-transactions', player.id],
@@ -84,15 +110,32 @@ export default function PlayerModal({ player, gameId, isClosed, onClose, onRegis
       queryClient.invalidateQueries({ queryKey: ['game', gameId] })
       setEditingChips(false)
     },
+    onError: () => {
+      setOptimisticChips(null)
+    },
   })
 
   const isPositive = player.net_balance > 0.01
   const isNegative = player.net_balance < -0.01
-  const currentChips = player.actual_chips != null ? player.actual_chips : player.chips_in_play
   const hasChipsInPlay = currentChips > 0
+  const virtualMoney = currentChips * chipValue
   const pct = player.money_spent > 0.001
     ? (player.net_balance / player.money_spent) * 100
     : null
+
+  function handleStepChips(delta) {
+    const newVal = Math.max(0, currentChips + delta)
+    setOptimisticChips(newVal)
+    updateChipsMutation.mutate(newVal)
+  }
+
+  function handleSubmitChips() {
+    const val = parseInt(chipInput)
+    if (!isNaN(val) && val >= 0) {
+      setOptimisticChips(val)
+      updateChipsMutation.mutate(val)
+    }
+  }
 
   return (
     <div
@@ -114,86 +157,123 @@ export default function PlayerModal({ player, gameId, isClosed, onClose, onRegis
 
         {/* Scrollable content */}
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-slate-700/50 rounded-xl p-3">
-              <p className="text-slate-500 text-xs">Inversión</p>
-              <p className="font-mono font-bold text-slate-100 mt-0.5">{player.money_spent.toFixed(2)}€</p>
-              <p className="font-mono text-xs text-slate-400">{player.buy_in_chips} fichas</p>
-            </div>
-            <div className="bg-slate-700/50 rounded-xl p-3">
-              <p className="text-slate-500 text-xs">Fichas en juego</p>
-              {!isClosed && editingChips ? (
-                <div className="flex gap-1.5 mt-1">
-                  <input
-                    type="number"
-                    value={chipInput}
-                    onChange={(e) => setChipInput(e.target.value)}
-                    min="0"
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-slate-100 font-mono text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const val = parseInt(chipInput)
-                        if (!isNaN(val) && val >= 0) updateChipsMutation.mutate(val)
-                      }
-                      if (e.key === 'Escape') setEditingChips(false)
-                    }}
-                  />
+
+          {/* HERO: Fichas en Juego */}
+          <div className="flex flex-col items-center py-4">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-3">
+              Fichas en juego
+            </p>
+
+            {!isClosed && editingChips ? (
+              /* Edit mode: centered input */
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  ref={inputRef}
+                  type="number"
+                  value={chipInput}
+                  onChange={(e) => setChipInput(e.target.value)}
+                  min="0"
+                  className="w-28 bg-slate-700 border border-slate-600 rounded-xl px-3 py-2 text-center text-slate-100 font-mono text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSubmitChips()
+                    if (e.key === 'Escape') setEditingChips(false)
+                  }}
+                />
+                <button
+                  onClick={handleSubmitChips}
+                  disabled={updateChipsMutation.isPending}
+                  className="p-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50 min-h-[44px] min-w-[44px]"
+                  aria-label="Confirmar fichas"
+                >
+                  <CheckIcon />
+                </button>
+              </div>
+            ) : (
+              /* Display mode: big number with steppers */
+              <div className="flex items-center gap-3 mb-2">
+                {!isClosed && (
                   <button
-                    onClick={() => {
-                      const val = parseInt(chipInput)
-                      if (!isNaN(val) && val >= 0) updateChipsMutation.mutate(val)
-                    }}
-                    disabled={updateChipsMutation.isPending}
-                    className="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50"
+                    onClick={() => handleStepChips(-10)}
+                    disabled={currentChips <= 0 || updateChipsMutation.isPending}
+                    className="w-12 h-12 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default gap-0.5"
+                    aria-label="Restar 10 fichas"
                   >
-                    <CheckIcon />
+                    <span className="text-xs font-bold font-mono">-10</span>
                   </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <p className="font-mono font-bold text-slate-100">
-                    {player.actual_chips != null ? player.actual_chips : player.chips_in_play}
-                  </p>
-                  {!isClosed && (
-                    <button
-                      onClick={() => {
-                        setChipInput(String(player.actual_chips != null ? player.actual_chips : player.chips_in_play))
-                        setEditingChips(true)
-                      }}
-                      className="text-slate-500 hover:text-emerald-400 transition-colors cursor-pointer p-0.5"
-                      aria-label="Actualizar fichas"
-                    >
-                      <PencilIcon />
-                    </button>
-                  )}
-                </div>
-              )}
-              <p className="font-mono text-xs text-slate-400">cash-out: {player.cash_out_chips}</p>
+                )}
+
+                <button
+                  onClick={() => {
+                    if (!isClosed) {
+                      setChipInput(String(currentChips))
+                      setEditingChips(true)
+                    }
+                  }}
+                  disabled={isClosed}
+                  className={`font-mono text-5xl font-bold text-slate-100 tabular-nums px-3 py-1 rounded-xl transition-colors ${
+                    !isClosed
+                      ? 'hover:bg-slate-700/60 cursor-pointer'
+                      : 'cursor-default'
+                  }`}
+                  aria-label={!isClosed ? 'Editar fichas' : undefined}
+                >
+                  {currentChips}
+                </button>
+
+                {!isClosed && (
+                  <button
+                    onClick={() => handleStepChips(10)}
+                    disabled={updateChipsMutation.isPending}
+                    className="w-12 h-12 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer disabled:opacity-30 gap-0.5"
+                    aria-label="Sumar 10 fichas"
+                  >
+                    <span className="text-xs font-bold font-mono">+10</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            <p className="font-mono text-sm text-slate-400">
+              {virtualMoney.toFixed(2)}€
+            </p>
+
+            {!isClosed && !editingChips && (
+              <p className="text-[10px] text-slate-600 mt-1.5">
+                Toca el numero para editar
+              </p>
+            )}
+          </div>
+
+          {/* Secondary stats row */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-slate-700/50 rounded-xl p-3 text-center">
+              <p className="text-slate-500 text-[10px] uppercase tracking-wide">Inversion</p>
+              <p className="font-mono font-bold text-slate-100 text-sm mt-0.5">{player.money_spent.toFixed(2)}€</p>
+              <p className="font-mono text-[10px] text-slate-500">{player.buy_in_chips} fichas</p>
             </div>
-            <div className="bg-slate-700/50 rounded-xl p-3">
-              <p className="text-slate-500 text-xs">Profit / Loss</p>
+            <div className="bg-slate-700/50 rounded-xl p-3 text-center">
+              <p className="text-slate-500 text-[10px] uppercase tracking-wide">Profit / Loss</p>
               <p
-                className={`font-mono font-bold mt-0.5 ${
+                className={`font-mono font-bold text-sm mt-0.5 ${
                   isPositive ? 'text-emerald-400' : isNegative ? 'text-red-400' : 'text-slate-400'
                 }`}
               >
                 {isPositive ? '+' : ''}{player.net_balance.toFixed(2)}€
               </p>
+              <p className="font-mono text-[10px] text-slate-500">cash-out: {player.cash_out_chips}</p>
             </div>
-            <div className="bg-slate-700/50 rounded-xl p-3">
-              <p className="text-slate-500 text-xs">Rentabilidad</p>
+            <div className="bg-slate-700/50 rounded-xl p-3 text-center">
+              <p className="text-slate-500 text-[10px] uppercase tracking-wide">ROI</p>
               {pct !== null ? (
                 <p
-                  className={`font-mono font-bold mt-0.5 ${
+                  className={`font-mono font-bold text-sm mt-0.5 ${
                     pct > 0.5 ? 'text-emerald-400' : pct < -0.5 ? 'text-red-400' : 'text-slate-400'
                   }`}
                 >
                   {pct > 0 ? '+' : ''}{pct.toFixed(1)}%
                 </p>
               ) : (
-                <p className="font-mono font-bold text-slate-600 mt-0.5">—</p>
+                <p className="font-mono font-bold text-slate-600 text-sm mt-0.5">—</p>
               )}
             </div>
           </div>
