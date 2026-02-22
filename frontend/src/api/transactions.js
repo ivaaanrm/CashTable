@@ -1,7 +1,9 @@
+import { authFetch } from './auth'
+
 const BASE = '/api'
 
 export async function addTransaction(data) {
-  const res = await fetch(`${BASE}/transactions/`, {
+  const res = await authFetch(`${BASE}/transactions/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -11,7 +13,7 @@ export async function addTransaction(data) {
 }
 
 export async function deleteTransaction(id) {
-  const res = await fetch(`${BASE}/transactions/${id}`, { method: 'DELETE' })
+  const res = await authFetch(`${BASE}/transactions/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('Error al anular el movimiento')
   return res.json()
 }

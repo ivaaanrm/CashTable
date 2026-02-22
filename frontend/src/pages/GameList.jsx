@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getGames, deleteGame } from '../api/games'
+import { clearToken } from '../api/auth'
 import NewGameModal from '../components/NewGameModal'
 
 function formatDate(dateStr) {
@@ -36,6 +37,14 @@ function PlusIcon() {
   )
 }
 
+function LogoutIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+    </svg>
+  )
+}
+
 function ChevronRightIcon() {
   return (
     <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -48,6 +57,12 @@ export default function GameList() {
   const [showNewGame, setShowNewGame] = useState(false)
   const [gameToDelete, setGameToDelete] = useState(null)
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    clearToken()
+    navigate('/login', { replace: true })
+  }
 
   const { data: games = [], isLoading, isError } = useQuery({
     queryKey: ['games'],
@@ -90,13 +105,22 @@ export default function GameList() {
               : `${games.length} partida${games.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <button
-          onClick={() => setShowNewGame(true)}
-          className="bg-gradient-to-b from-gold-400 to-gold-600 hover:from-gold-300 hover:to-gold-500 text-poker-dark px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer min-h-[44px] flex items-center gap-2 text-sm shadow-md"
-        >
-          <PlusIcon />
-          Nueva
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowNewGame(true)}
+            className="bg-gradient-to-b from-gold-400 to-gold-600 hover:from-gold-300 hover:to-gold-500 text-poker-dark px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer min-h-[44px] flex items-center gap-2 text-sm shadow-md"
+          >
+            <PlusIcon />
+            Nueva
+          </button>
+          <button
+            onClick={handleLogout}
+            className="text-slate-500 hover:text-slate-300 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Cerrar sesión"
+          >
+            <LogoutIcon />
+          </button>
+        </div>
       </div>
 
       {/* Empty state */}
