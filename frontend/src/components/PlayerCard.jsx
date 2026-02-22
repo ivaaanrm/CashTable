@@ -1,3 +1,5 @@
+import { formatChips } from '../utils/format'
+
 export default function PlayerCard({ player, isClosed, onClick, chipValue, bigBlindValue }) {
   const balance = player.net_balance
   const isPositive = balance > 0.01
@@ -22,7 +24,7 @@ export default function PlayerCard({ player, isClosed, onClick, chipValue, bigBl
           <h3 className="font-bold text-lg text-slate-100 truncate tracking-wide">{player.name}</h3>
           <p className="text-emerald-100/60 text-sm mt-1 flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 border border-gray-600 shadow-[inset_0_1px_rgba(255,255,255,0.4)]" />
-            <span className="font-mono font-medium text-slate-200">{currentChips}</span>
+            <span className="font-mono font-medium text-slate-200">{formatChips(currentChips)}</span>
             <span className="text-emerald-400/80 text-xs font-mono">({virtualMoney.toFixed(2)}€)</span>
             {bigBlindValue > 0 && (
               <span className="text-gold-400/70 text-xs font-mono">{(currentChips / bigBlindValue).toFixed(1)} BB</span>

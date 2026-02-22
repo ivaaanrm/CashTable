@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { addTransaction } from '../api/transactions'
+import { formatChips } from '../utils/format'
 
 function CloseIcon() {
   return (
@@ -146,7 +147,7 @@ export default function TransactionModal({
               Cantidad de fichas
               {type === 'cash_out' && maxChips !== undefined && (
                 <span className="ml-2 text-slate-500 font-normal normal-case tracking-normal">
-                  (máx. {maxChips})
+                  (máx. {formatChips(maxChips)})
                 </span>
               )}
             </label>

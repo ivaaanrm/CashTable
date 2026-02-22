@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getPlayerTransactions, deletePlayer, updatePlayerChips } from '../api/players'
 import { deleteTransaction } from '../api/transactions'
+import { formatChips } from '../utils/format'
 
 function CloseIcon() {
   return (
@@ -220,7 +221,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
                     }`}
                   aria-label={!isClosed ? 'Editar fichas' : undefined}
                 >
-                  {currentChips}
+                  {formatChips(currentChips)}
                 </button>
 
                 {!isClosed && (
@@ -252,7 +253,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
             <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 shadow-inner">
               <p className="text-emerald-200/50 text-[10px] uppercase tracking-wider font-bold">Inversión</p>
               <p className="font-mono font-bold text-slate-100 text-sm mt-1">{player.money_spent.toFixed(2)}€</p>
-              <p className="font-mono text-[10px] text-emerald-200/40">{player.buy_in_chips} fichas</p>
+              <p className="font-mono text-[10px] text-emerald-200/40">{formatChips(player.buy_in_chips)} fichas</p>
             </div>
             <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 shadow-inner">
               <p className="text-emerald-200/50 text-[10px] uppercase tracking-wider font-bold">P/L</p>
@@ -262,7 +263,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
               >
                 {isPositive ? '+' : ''}{player.net_balance.toFixed(2)}€
               </p>
-              <p className="font-mono text-[10px] text-emerald-200/40">cash-out: {player.cash_out_chips}</p>
+              <p className="font-mono text-[10px] text-emerald-200/40">cash-out: {formatChips(player.cash_out_chips)}</p>
             </div>
             <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 shadow-inner">
               <p className="text-emerald-200/50 text-[10px] uppercase tracking-wider font-bold">ROI</p>
@@ -333,7 +334,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
                       </span>
                       <p className="text-slate-300 font-mono text-lg font-bold flex items-center gap-1.5 mt-1">
                         <span className={`inline-block w-2 h-2 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.4)] ${tx.type === 'buy_in' ? 'bg-gradient-to-br from-gray-300 to-gray-500 border border-gray-600' : 'bg-gradient-to-br from-red-400 to-chip-red border border-red-800'}`} />
-                        {tx.chips} <span className="text-emerald-200/40 text-xs font-medium ml-1">({(tx.chips * chipValue).toFixed(2)}€)</span>
+                        {formatChips(tx.chips)} <span className="text-emerald-200/40 text-xs font-medium ml-1">({(tx.chips * chipValue).toFixed(2)}€)</span>
                       </p>
                     </div>
 

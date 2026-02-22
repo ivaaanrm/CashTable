@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getGame, closeGame, updateGame } from '../api/games'
+import { formatChips } from '../utils/format'
 import PlayerCard from '../components/PlayerCard'
 import PlayerModal from '../components/PlayerModal'
 import TransactionModal from '../components/TransactionModal'
@@ -127,7 +128,7 @@ export default function GameDetail() {
         <div>
           <h1 className="text-xl font-bold text-slate-100">{game.name}</h1>
           <p className="text-slate-500 text-sm font-mono mt-0.5">
-            {game.chip_value}€/ficha
+            {Math.round(1 / game.chip_value)} fichas/€
             {game.big_blind_value && (
               <span className="ml-2 text-gold-400/70">· BB {game.big_blind_value}</span>
             )}
@@ -226,7 +227,7 @@ export default function GameDetail() {
           <div className="min-w-0">
             <p className="text-red-200 text-sm font-bold uppercase tracking-wide">Desajuste de Fichas</p>
             <p className="text-red-300/90 text-xs mt-0.5 font-medium">
-              Diferencia de <span className="font-mono text-white text-sm bg-red-950/50 px-1.5 py-0.5 rounded-md mx-0.5">{chipDifference > 0 ? '+' : ''}{chipDifference}</span> fichas
+              Diferencia de <span className="font-mono text-white text-sm bg-red-950/50 px-1.5 py-0.5 rounded-md mx-0.5">{chipDifference > 0 ? '+' : ''}{formatChips(chipDifference)}</span> fichas
               {playersNotReported > 0 && (
                 <span> · {playersNotReported} jugador{playersNotReported > 1 ? 'es' : ''} sin reportar</span>
               )}

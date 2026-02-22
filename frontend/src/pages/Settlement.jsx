@@ -49,7 +49,7 @@ export default function Settlement() {
       lines.push('¡Todos en tablas! No hay transferencias.')
     } else {
       settlement.transfers.forEach((t) => {
-        lines.push(`${t.from_player} paga ${t.amount.toFixed(0)}€ a ${t.to_player}`)
+        lines.push(`${t.from_player} paga ${t.amount.toFixed(2)}€ a ${t.to_player}`)
       })
     }
 

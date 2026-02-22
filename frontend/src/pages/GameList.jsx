@@ -114,7 +114,7 @@ export default function GameList() {
           </button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {games.map((game) => (
             <div
               key={game.id}
@@ -123,12 +123,12 @@ export default function GameList() {
               <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
               <Link
                 to={game.status === 'closed' ? `/games/${game.id}/settlement` : `/games/${game.id}`}
-                className="flex items-center gap-3 p-4 hover:bg-white/5 transition-colors cursor-pointer relative z-10"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer relative z-10"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                    <h2 className="font-bold text-lg text-slate-100 truncate tracking-wide flex items-center gap-2">
-                      <span className="w-1.5 h-5 bg-gold-500 rounded-sm inline-block" />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="font-bold text-base text-slate-100 truncate tracking-wide flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-gold-500 rounded-sm inline-block" />
                       {game.name}
                     </h2>
                     <span
@@ -140,27 +140,25 @@ export default function GameList() {
                       {game.status === 'active' ? 'Activa' : 'Cerrada'}
                     </span>
                   </div>
-                  <p className="text-emerald-100/60 text-sm flex items-center gap-1.5">
-                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 border border-gray-600 shadow-[inset_0_1px_rgba(255,255,255,0.4)]" />
-                    <span className="font-mono font-medium text-slate-200">{game.chip_value}€</span>/ficha
-                    <span className="mx-1 text-poker-light">·</span>
+                  <p className="text-emerald-100/60 text-xs flex items-center gap-1.5 mt-0.5">
+                    <span className="font-mono font-medium text-slate-200">{Math.round(1 / game.chip_value)}</span> fichas/€
+                    <span className="mx-0.5 text-poker-light">·</span>
                     {formatDate(game.created_at)}
                   </p>
                 </div>
-                <div className="bg-black/20 p-2 rounded-full text-slate-400">
-                  <ChevronRightIcon />
+                <div className="flex items-center gap-2 relative z-10">
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setGameToDelete(game) }}
+                    className="text-slate-600 hover:text-chip-red transition-colors cursor-pointer p-2 rounded-lg hover:bg-black/20 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    aria-label="Borrar partida"
+                  >
+                    <TrashIcon />
+                  </button>
+                  <div className="text-slate-600">
+                    <ChevronRightIcon />
+                  </div>
                 </div>
               </Link>
-
-              <div className="px-4 pb-3 flex justify-end border-t border-poker-light/20 relative z-10 pt-3 mt-1 bg-black/10">
-                <button
-                  onClick={() => setGameToDelete(game)}
-                  className="text-slate-500 hover:text-chip-red transition-colors cursor-pointer text-xs font-bold uppercase tracking-wider min-h-[44px] px-3 py-1 flex items-center gap-1.5 rounded-lg hover:bg-black/20"
-                >
-                  <TrashIcon />
-                  Borrar Partida
-                </button>
-              </div>
             </div>
           ))}
         </div>
@@ -171,7 +169,7 @@ export default function GameList() {
       {/* Custom Deletion Modal */}
       {gameToDelete && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4 animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
           onClick={(e) => e.target === e.currentTarget && setGameToDelete(null)}
         >
           <div className="bg-poker-dark/95 backdrop-blur-xl rounded-2xl w-full max-w-sm border border-chip-red/30 shadow-2xl shadow-black animate-slide-up p-6 text-center">
