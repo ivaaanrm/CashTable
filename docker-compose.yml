@@ -1,49 +1,60 @@
 services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-cashtable}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cashtable}
-      POSTGRES_DB: ${POSTGRES_DB:-cashtable}
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cashtable}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - traefik-public
+      - cashtable-internal
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cashtable.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.cashtable.entrypoints=websecure"
+      - "traefik.http.routers.cashtable.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cashtable.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-public"
 
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile
-    ports:
-      - "8000:8000"
+      dockerfile: backend/Dockerfile.prod
+    restart: unless-stopped
+    expose:
+      - "8000"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-cashtable}:${POSTGRES_PASSWORD:-cashtable}@db:5432/${POSTGRES_DB:-cashtable}
-      SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
-      DEBUG: ${DEBUG:-1}
-    volumes:
-      - .:/app
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: "0"
+    networks:
+      - cashtable-internal
     depends_on:
       db:
         condition: service_healthy
 
-  frontend:
-    build:
-      context: frontend
-      dockerfile: Dockerfile
-    ports:
-      - "5173:5173"
+  db:
+    image: postgres:16.6-alpine
+    restart: unless-stopped
     environment:
-      VITE_API_URL: http://backend:8000
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - cashtable-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-volumes:
-  pgdata:
+networks:
+  traefik-public:
+    external: true
+  cashtable-internal:
+    driver: bridge

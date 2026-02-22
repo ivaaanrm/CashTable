@@ -20,7 +20,7 @@ install:
 	cd frontend && npm install
 
 docker:
-	docker compose up --build
+	docker compose -f docker-compose.dev.yml up --build
 
 docker-down:
-	docker compose down
+	docker compose -f docker-compose.dev.yml down
