@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { getGames, deleteGame } from '../api/games'
+import { Link, useNavigate } from 'react-router-dom'
+import { getGames, deleteGame, joinGameByPin } from '../api/games'
 import NewGameModal from '../components/NewGameModal'
 
 function formatDate(dateStr) {
@@ -44,12 +44,21 @@ function ChevronRightIcon() {
   )
 }
 
+function isSixDigitPin(pin) {
+  return /^\d{6}$/.test(pin)
+}
+
 export default function GameList() {
   const [showNewGame, setShowNewGame] = useState(false)
   const [gameToDelete, setGameToDelete] = useState(null)
+  const [pinInput, setPinInput] = useState('')
+  const [showJoinName, setShowJoinName] = useState(false)
+  const [joinName, setJoinName] = useState('')
+  const [pendingJoinPin, setPendingJoinPin] = useState('')
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
-  const { data: games = [], isLoading, isError } = useQuery({
+  const { data: games = [], isLoading, isError, error } = useQuery({
     queryKey: ['games'],
     queryFn: getGames,
   })
@@ -62,6 +71,31 @@ export default function GameList() {
     },
   })
 
+  const joinMutation = useMutation({
+    mutationFn: joinGameByPin,
+    onSuccess: (payload) => {
+      queryClient.invalidateQueries({ queryKey: ['games'] })
+      setJoinName('')
+      setPendingJoinPin('')
+      setShowJoinName(false)
+      setPinInput('')
+      navigate(`/games/${payload.game.id}`)
+    },
+  })
+
+  function startJoinFlow(e) {
+    e.preventDefault()
+    if (!isSixDigitPin(pinInput)) return
+    setPendingJoinPin(pinInput)
+    setShowJoinName(true)
+  }
+
+  function submitJoin(e) {
+    e.preventDefault()
+    if (!joinName.trim() || !isSixDigitPin(pendingJoinPin)) return
+    joinMutation.mutate({ pin: pendingJoinPin, player_name: joinName.trim() })
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -73,13 +107,33 @@ export default function GameList() {
   if (isError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-400">Error al conectar con el servidor</p>
+        <p className="text-red-400">{error?.message ?? 'Error al conectar con el servidor'}</p>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-transparent max-w-lg mx-auto px-4 py-6">
+      <div className="bg-poker-dark/50 border border-poker-light/25 rounded-2xl p-4 mb-6">
+        <p className="text-xs uppercase tracking-widest text-emerald-200/60 font-bold mb-2">Unirse con PIN</p>
+        <form onSubmit={startJoinFlow} className="flex gap-2">
+          <input
+            type="text"
+            value={pinInput}
+            onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="123456"
+            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-gold-400 font-mono font-bold tracking-[0.25em] text-center focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
+          />
+          <button
+            type="submit"
+            disabled={!isSixDigitPin(pinInput)}
+            className="bg-gradient-to-b from-gold-400 to-gold-600 hover:from-gold-300 hover:to-gold-500 disabled:opacity-50 disabled:cursor-not-allowed text-poker-dark px-4 py-3 rounded-xl font-bold uppercase tracking-wider"
+          >
+            Unirse
+          </button>
+        </form>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -104,7 +158,7 @@ export default function GameList() {
         <div className="text-center py-20 bg-black/20 backdrop-blur-sm border-2 border-dashed border-poker-light/40 rounded-2xl">
           <CardIcon className="mx-auto opacity-50 text-poker-light" />
           <p className="text-emerald-200/50 text-lg uppercase tracking-widest font-bold mt-4">Sin partidas</p>
-          <p className="text-emerald-200/40 text-sm mt-2">Crea tu primera partida para empezar</p>
+          <p className="text-emerald-200/40 text-sm mt-2">Únete con PIN o crea una partida</p>
           <button
             onClick={() => setShowNewGame(true)}
             className="mt-6 bg-gradient-to-b from-gold-400 to-gold-600 hover:from-gold-300 hover:to-gold-500 text-poker-dark px-6 py-3 rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer min-h-[44px] inline-flex items-center gap-2 shadow-lg"
@@ -139,6 +193,9 @@ export default function GameList() {
                     >
                       {game.status === 'active' ? 'Activa' : 'Cerrada'}
                     </span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider border ${game.session_role === 'host' ? 'bg-gold-900/30 text-gold-300 border-gold-500/30' : 'bg-slate-800/70 text-slate-300 border-slate-600/50'}`}>
+                      {game.session_role === 'host' ? 'Host' : 'Player'}
+                    </span>
                   </div>
                   <p className="text-emerald-100/60 text-xs flex items-center gap-1.5 mt-0.5">
                     <span className="font-mono font-medium text-slate-200">{Math.round(1 / game.chip_value)}</span> fichas/€
@@ -147,13 +204,15 @@ export default function GameList() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 relative z-10">
-                  <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setGameToDelete(game) }}
-                    className="text-slate-600 hover:text-chip-red transition-colors cursor-pointer p-2 rounded-lg hover:bg-black/20 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                    aria-label="Borrar partida"
-                  >
-                    <TrashIcon />
-                  </button>
+                  {game.session_role === 'host' && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setGameToDelete(game) }}
+                      className="text-slate-600 hover:text-chip-red transition-colors cursor-pointer p-2 rounded-lg hover:bg-black/20 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label="Borrar partida"
+                    >
+                      <TrashIcon />
+                    </button>
+                  )}
                   <div className="text-slate-600">
                     <ChevronRightIcon />
                   </div>
@@ -164,7 +223,54 @@ export default function GameList() {
         </div>
       )}
 
-      {showNewGame && <NewGameModal onClose={() => setShowNewGame(false)} />}
+      {showNewGame && (
+        <NewGameModal
+          onClose={() => setShowNewGame(false)}
+          onCreated={(game) => navigate(`/games/${game.id}`)}
+        />
+      )}
+
+      {/* Join name modal */}
+      {showJoinName && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={(e) => e.target === e.currentTarget && setShowJoinName(false)}
+        >
+          <div className="bg-poker-dark/95 backdrop-blur-xl rounded-2xl w-full max-w-sm border border-poker-light/30 shadow-2xl shadow-black animate-slide-up p-6">
+            <h2 className="text-xl font-bold tracking-wide text-slate-100 mb-2">Entrar en partida</h2>
+            <p className="text-emerald-100/60 text-sm mb-5">PIN <span className="font-mono text-gold-400">{pendingJoinPin}</span></p>
+            <form onSubmit={submitJoin} className="space-y-4">
+              <input
+                type="text"
+                value={joinName}
+                onChange={(e) => setJoinName(e.target.value)}
+                placeholder="Tu nombre"
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
+                autoFocus
+              />
+              {joinMutation.isError && (
+                <p className="text-chip-red text-sm" role="alert">{joinMutation.error.message}</p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowJoinName(false)}
+                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl font-bold uppercase tracking-wider"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={joinMutation.isPending || !joinName.trim()}
+                  className="flex-1 py-3 bg-gradient-to-b from-gold-400 to-gold-600 hover:from-gold-300 hover:to-gold-500 disabled:opacity-50 text-poker-dark rounded-xl font-bold uppercase tracking-wider"
+                >
+                  {joinMutation.isPending ? 'Uniendo...' : 'Entrar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Custom Deletion Modal */}
       {gameToDelete && (

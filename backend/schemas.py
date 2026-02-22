@@ -27,6 +27,26 @@ class PlayerCreate(BaseModel):
     name: str
 
 
+class JoinGameByPin(BaseModel):
+    pin: str
+    player_name: str
+
+    @field_validator("pin")
+    @classmethod
+    def pin_must_be_six_digits(cls, v: str) -> str:
+        if len(v) != 6 or not v.isdigit():
+            raise ValueError("pin must be exactly 6 digits")
+        return v
+
+    @field_validator("player_name")
+    @classmethod
+    def player_name_must_not_be_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("player_name cannot be empty")
+        return v
+
+
 class PlayerUpdateChips(BaseModel):
     actual_chips: int
 
@@ -59,9 +79,11 @@ class GameOut(BaseModel):
 
     id: int
     name: str
+    pin: str
     chip_value: float
     big_blind_value: float | None
     status: str
+    session_role: str | None = None
     created_at: datetime
     closed_at: datetime | None
 
@@ -84,9 +106,12 @@ class GameDetail(BaseModel):
 
     id: int
     name: str
+    pin: str
     chip_value: float
     big_blind_value: float | None
     status: str
+    session_role: str | None = None
+    session_player_id: int | None = None
     created_at: datetime
     closed_at: datetime | None
     players: list[PlayerStats]
@@ -112,6 +137,11 @@ class TransactionOut(BaseModel):
     created_at: datetime
 
 
+class JoinGameOut(BaseModel):
+    game: GameOut
+    player: PlayerOut | None = None
+
+
 class TransferOut(BaseModel):
     from_player: str
     to_player: str
@@ -129,3 +159,10 @@ class PlayerSummary(BaseModel):
 class SettlementOut(BaseModel):
     player_summary: list[PlayerSummary]
     transfers: list[TransferOut]
+
+
+class SessionInfoOut(BaseModel):
+    game_id: int
+    role: str
+    player_id: int | None
+    game_name: str

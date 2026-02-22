@@ -7,7 +7,8 @@
       "Bash(cd /Users/ivanr/Developer/CashTable/frontend && npm install 2>&1)",
       "Bash(npm run:*)",
       "Bash(tail:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git checkout:*)"
     ]
   }
 }

@@ -88,6 +88,7 @@ export default function GameDetail() {
   }
 
   const isClosed = game.status === 'closed'
+  const isHost = game.session_role === 'host'
   const players = game.players ?? []
   const totalPot = players.reduce((sum, p) => sum + p.money_spent, 0)
   const totalChipsInPlay = players.reduce((sum, p) => sum + p.chips_in_play, 0)
@@ -133,15 +134,30 @@ export default function GameDetail() {
               <span className="ml-2 text-gold-400/70">· BB {game.big_blind_value}</span>
             )}
           </p>
+          <div className="flex items-center gap-2 mt-2">
+            <p className="text-gold-400/80 text-xs font-mono">PIN: {game.pin}</p>
+            <button
+              type="button"
+              onClick={() => navigator.clipboard?.writeText(game.pin)}
+              className="text-[10px] uppercase tracking-wider font-bold text-emerald-300/70 hover:text-emerald-200"
+            >
+              Copiar
+            </button>
+          </div>
         </div>
-        <span
-          className={`mt-1 flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${isClosed
-            ? 'bg-slate-800/80 text-slate-400 border border-slate-700/50'
-            : 'bg-poker-light/80 text-emerald-300 border border-emerald-500/30 shadow-emerald-900/50'
-            }`}
-        >
-          {isClosed ? 'Cerrada' : 'Activa'}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span
+            className={`mt-1 flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${isClosed
+              ? 'bg-slate-800/80 text-slate-400 border border-slate-700/50'
+              : 'bg-poker-light/80 text-emerald-300 border border-emerald-500/30 shadow-emerald-900/50'
+              }`}
+          >
+            {isClosed ? 'Cerrada' : 'Activa'}
+          </span>
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isHost ? 'bg-gold-900/30 text-gold-300 border-gold-500/30' : 'bg-slate-800/70 text-slate-300 border-slate-600/50'}`}>
+            {isHost ? 'Host' : 'Player'}
+          </span>
+        </div>
       </div>
 
       {/* BB inline edit */}
@@ -268,7 +284,7 @@ export default function GameDetail() {
             Añadir Jugador
           </button>
 
-          {players.length > 0 && (
+          {isHost && players.length > 0 && (
             <button
               onClick={() => {
                 if (confirm('¿Cerrar la partida? Ya no se podrán añadir más movimientos.')) {
@@ -328,6 +344,7 @@ export default function GameDetail() {
           player={selectedPlayer}
           gameId={gameId}
           isClosed={isClosed}
+          isHost={isHost}
           chipValue={game.chip_value}
           onClose={() => setSelectedPlayer(null)}
           onRegisterMovement={(player, type) => {

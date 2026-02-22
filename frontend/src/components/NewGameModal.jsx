@@ -10,7 +10,7 @@ function CloseIcon() {
   )
 }
 
-export default function NewGameModal({ onClose }) {
+export default function NewGameModal({ onClose, onCreated }) {
   const [name, setName] = useState('')
   const [chipsPerEuro, setChipsPerEuro] = useState('1')
   const [bigBlind, setBigBlind] = useState('')
@@ -21,8 +21,9 @@ export default function NewGameModal({ onClose }) {
 
   const mutation = useMutation({
     mutationFn: createGame,
-    onSuccess: () => {
+    onSuccess: (createdGame) => {
       queryClient.invalidateQueries({ queryKey: ['games'] })
+      if (onCreated) onCreated(createdGame)
       onClose()
     },
   })

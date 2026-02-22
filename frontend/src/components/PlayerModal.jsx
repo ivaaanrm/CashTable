@@ -61,7 +61,7 @@ function formatTime(dateStr) {
   })
 }
 
-export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, onClose, onRegisterMovement }) {
+export default function PlayerModal({ player, gameId, isClosed, isHost = false, chipValue = 1, onClose, onRegisterMovement }) {
   const queryClient = useQueryClient()
   const serverChips = player.actual_chips != null ? player.actual_chips : player.chips_in_play
   const [optimisticChips, setOptimisticChips] = useState(null)
@@ -368,7 +368,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
         </div>
 
         {/* Footer — delete player (only active, no transactions) */}
-        {!isClosed && transactions.length === 0 && (
+        {!isClosed && isHost && transactions.length === 0 && (
           <div className="p-5 border-t border-poker-light/20 flex-shrink-0 bg-black/10">
             <button
               onClick={() => {
