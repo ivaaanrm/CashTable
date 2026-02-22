@@ -49,7 +49,7 @@ export default function Settlement() {
       lines.push('¡Todos en tablas! No hay transferencias.')
     } else {
       settlement.transfers.forEach((t) => {
-        lines.push(`${t.from_player} paga ${t.amount.toFixed(0)}€ a ${t.to_player}`)
+        lines.push(`${t.from_player} paga ${t.amount.toFixed(2)}€ a ${t.to_player}`)
       })
     }
 
@@ -82,7 +82,7 @@ export default function Settlement() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 max-w-lg mx-auto px-4 py-6">
+    <div className="min-h-screen bg-transparent max-w-lg mx-auto px-4 py-6">
       {/* Back */}
       <Link
         to="/"
@@ -94,37 +94,39 @@ export default function Settlement() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-slate-100">{game?.name}</h1>
-        <p className="text-slate-400 text-sm mt-0.5">Resultado final</p>
+        <h1 className="text-2xl font-bold tracking-wide text-slate-100 flex items-center gap-2">
+          <span className="w-1.5 h-6 bg-gold-500 rounded-sm inline-block" />
+          {game?.name}
+        </h1>
+        <p className="text-emerald-100/60 font-medium uppercase tracking-widest text-xs mt-1">Resultado final</p>
       </div>
 
       {/* Player summary */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 mb-4 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-700">
-          <h2 className="font-semibold text-slate-200 text-sm uppercase tracking-wide">
-            Resumen por jugador
+      <div className="bg-poker-dark/60 backdrop-blur-md rounded-2xl border-2 border-poker-light/20 mb-6 overflow-hidden shadow-lg">
+        <div className="px-4 py-3 border-b border-poker-light/20 bg-black/10">
+          <h2 className="font-bold text-slate-200 text-sm uppercase tracking-wider">
+            Resumen de Jugadores
           </h2>
         </div>
-        <div className="divide-y divide-slate-700">
+        <div className="divide-y divide-poker-light/20">
           {settlement?.player_summary.map((p) => {
             const isPositive = p.profit_loss > 0.01
             const isNegative = p.profit_loss < -0.01
             return (
-              <div key={p.name} className="px-4 py-3 flex items-center justify-between gap-4">
+              <div key={p.name} className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-white/5 transition-colors">
                 <div className="min-w-0">
-                  <p className="font-medium text-slate-100 truncate">{p.name}</p>
-                  <p className="text-slate-500 text-xs font-mono mt-0.5">
-                    {p.money_spent.toFixed(2)}€ → {p.final_value.toFixed(2)}€
+                  <p className="font-bold text-lg text-slate-100 truncate tracking-wide">{p.name}</p>
+                  <p className="text-emerald-100/50 text-xs font-mono mt-0.5">
+                    Inv. {p.money_spent.toFixed(2)}€ → <span className="text-slate-300 font-medium">{p.final_value.toFixed(2)}€</span>
                   </p>
                 </div>
                 <span
-                  className={`font-mono font-bold text-base flex-shrink-0 ${
-                    isPositive
+                  className={`font-mono font-black text-xl drop-shadow-md flex-shrink-0 ${isPositive
                       ? 'text-emerald-400'
                       : isNegative
-                      ? 'text-red-400'
-                      : 'text-slate-400'
-                  }`}
+                        ? 'text-chip-red'
+                        : 'text-slate-400'
+                    }`}
                 >
                   {isPositive ? '+' : ''}
                   {p.profit_loss.toFixed(2)}€
@@ -136,29 +138,31 @@ export default function Settlement() {
       </div>
 
       {/* Transfers */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 mb-6 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-700">
-          <h2 className="font-semibold text-slate-200 text-sm uppercase tracking-wide">
+      <div className="bg-poker-dark/60 backdrop-blur-md rounded-2xl border-2 border-poker-light/20 mb-6 overflow-hidden shadow-lg">
+        <div className="px-4 py-3 border-b border-poker-light/20 bg-black/10">
+          <h2 className="font-bold text-slate-200 text-sm uppercase tracking-wider">
             Transferencias
           </h2>
         </div>
         {settlement?.transfers.length === 0 ? (
-          <div className="px-4 py-8 text-center">
-            <p className="text-slate-400">¡Todos en tablas!</p>
-            <p className="text-slate-600 text-sm mt-1">No hay transferencias pendientes</p>
+          <div className="px-4 py-10 text-center">
+            <p className="text-slate-300 font-bold tracking-wide">¡Todos en tablas!</p>
+            <p className="text-emerald-100/50 text-sm mt-1">No hay transferencias pendientes</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-700">
+          <div className="divide-y divide-poker-light/20">
             {settlement?.transfers.map((t, i) => (
-              <div key={i} className="px-4 py-3 flex items-center gap-3">
-                <div className="flex-1 flex items-center gap-2 min-w-0">
-                  <span className="font-medium text-slate-100 truncate">{t.from_player}</span>
-                  <ArrowRightIcon />
-                  <span className="font-medium text-slate-100 truncate">{t.to_player}</span>
+              <div key={i} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hover:bg-white/5 transition-colors">
+                <div className="flex-1 flex items-center justify-between sm:justify-start gap-4 min-w-0 bg-black/20 p-3 rounded-xl border border-white/5 shadow-inner">
+                  <span className="font-bold text-chip-red truncate text-lg">{t.from_player}</span>
+                  <ArrowRightIcon className="text-gold-500 opacity-80" />
+                  <span className="font-bold text-emerald-400 truncate text-lg">{t.to_player}</span>
                 </div>
-                <span className="font-mono font-bold text-red-400 flex-shrink-0">
-                  {t.amount.toFixed(2)}€
-                </span>
+                <div className="flex items-center sm:justify-end">
+                  <span className="font-mono font-black text-gold-400 text-2xl drop-shadow-md sm:text-right">
+                    {t.amount.toFixed(2)}€
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -168,7 +172,7 @@ export default function Settlement() {
       {/* Copy for WhatsApp */}
       <button
         onClick={copyForWhatsApp}
-        className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white rounded-xl font-medium transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-2.5"
+        className="w-full py-4 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 active:scale-95 text-white rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-900/30"
       >
         <WhatsAppIcon />
         Copiar para WhatsApp

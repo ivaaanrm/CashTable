@@ -22,6 +22,16 @@ export async function getGame(id) {
   return res.json()
 }
 
+export async function updateGame(id, data) {
+  const res = await fetch(`${BASE}/games/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('Error al actualizar la partida')
+  return res.json()
+}
+
 export async function closeGame(id) {
   const res = await fetch(`${BASE}/games/${id}/close`, { method: 'PATCH' })
   if (!res.ok) throw new Error('Error al cerrar la partida')
@@ -31,7 +41,8 @@ export async function closeGame(id) {
 export async function deleteGame(id) {
   const res = await fetch(`${BASE}/games/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('Error al borrar la partida')
-  return res.json()
+  // DELETE returns 204 No Content, so we don't try to parse JSON
+  return true
 }
 
 export async function getSettlement(id) {

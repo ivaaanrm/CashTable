@@ -4,7 +4,9 @@
 
 @layer base {
   body {
-    @apply bg-slate-900 text-slate-100 antialiased font-sans;
+    @apply bg-poker-dark text-slate-100 antialiased font-sans;
+    background-image: radial-gradient(circle at top, theme('colors.poker.felt') 0%, theme('colors.poker.dark') 100%);
+    background-attachment: fixed;
   }
 }
 

@@ -12,6 +12,7 @@ class Game(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     chip_value = Column(Float, nullable=False, default=1.0)
+    big_blind_value = Column(Float, nullable=True)
     status = Column(String, nullable=False, default="active")
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     closed_at = Column(DateTime, nullable=True)

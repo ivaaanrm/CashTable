@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getGame, closeGame } from '../api/games'
+import { getGame, closeGame, updateGame } from '../api/games'
+import { formatChips } from '../utils/format'
 import PlayerCard from '../components/PlayerCard'
 import PlayerModal from '../components/PlayerModal'
 import TransactionModal from '../components/TransactionModal'
@@ -39,6 +40,8 @@ export default function GameDetail() {
   const [transactionDefaults, setTransactionDefaults] = useState({})
   const [showAddPlayer, setShowAddPlayer] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
+  const [editingBB, setEditingBB] = useState(false)
+  const [bbInput, setBbInput] = useState('')
 
   const gameId = parseInt(id)
 
@@ -52,6 +55,14 @@ export default function GameDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['game', gameId] })
       navigate(`/games/${id}/settlement`)
+    },
+  })
+
+  const bbMutation = useMutation({
+    mutationFn: (data) => updateGame(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['game', gameId] })
+      setEditingBB(false)
     },
   })
 
@@ -102,7 +113,7 @@ export default function GameDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 max-w-lg mx-auto px-4 py-6 pb-28">
+    <div className="min-h-screen bg-transparent max-w-lg mx-auto px-4 py-6 pb-28">
       {/* Back */}
       <Link
         to="/"
@@ -116,33 +127,87 @@ export default function GameDetail() {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-slate-100">{game.name}</h1>
-          <p className="text-slate-500 text-sm font-mono mt-0.5">{game.chip_value}€/ficha</p>
+          <p className="text-slate-500 text-sm font-mono mt-0.5">
+            {Math.round(1 / game.chip_value)} fichas/€
+            {game.big_blind_value && (
+              <span className="ml-2 text-gold-400/70">· BB {game.big_blind_value}</span>
+            )}
+          </p>
         </div>
         <span
-          className={`mt-1 flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${isClosed
-              ? 'bg-slate-700 text-slate-400 border border-slate-600'
-              : 'bg-emerald-900/50 text-emerald-400 border border-emerald-800'
+          className={`mt-1 flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${isClosed
+            ? 'bg-slate-800/80 text-slate-400 border border-slate-700/50'
+            : 'bg-poker-light/80 text-emerald-300 border border-emerald-500/30 shadow-emerald-900/50'
             }`}
         >
           {isClosed ? 'Cerrada' : 'Activa'}
         </span>
       </div>
 
+      {/* BB inline edit */}
+      {!isClosed && (
+        <div className="mb-4">
+          {editingBB ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                const val = parseFloat(bbInput)
+                if (val > 0) bbMutation.mutate({ big_blind_value: val })
+                else if (bbInput === '') bbMutation.mutate({ big_blind_value: null })
+              }}
+              className="flex items-center gap-2"
+            >
+              <label className="text-xs text-emerald-200/50 uppercase tracking-wider font-bold">BB</label>
+              <input
+                type="number"
+                value={bbInput}
+                onChange={(e) => setBbInput(e.target.value)}
+                min="1"
+                step="1"
+                placeholder="Ej: 100"
+                className="w-24 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-gold-400 font-mono font-bold focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 transition-all text-sm"
+                autoFocus
+              />
+              <button type="submit" className="text-xs text-emerald-400 hover:text-emerald-300 font-bold uppercase min-h-[44px] px-2 cursor-pointer">
+                OK
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingBB(false)}
+                className="text-xs text-slate-500 hover:text-slate-300 font-bold uppercase min-h-[44px] px-2 cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </form>
+          ) : (
+            <button
+              onClick={() => {
+                setBbInput(game.big_blind_value != null ? String(game.big_blind_value) : '')
+                setEditingBB(true)
+              }}
+              className="text-xs text-emerald-200/40 hover:text-gold-400 transition-colors cursor-pointer font-bold uppercase tracking-wider"
+            >
+              {game.big_blind_value ? `BB: ${game.big_blind_value} fichas ✎` : '+ Añadir Big Blind'}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Stats */}
       {players.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            <p className="text-xs text-slate-500 mb-0.5">Jugadores</p>
-            <p className="text-xl font-bold text-slate-100 font-mono">{players.length}</p>
+          <div className="bg-poker-dark/60 backdrop-blur-md rounded-xl p-3 border border-poker-light/30 shadow-inner">
+            <p className="text-xs text-emerald-200/60 mb-0.5 uppercase tracking-wider">Jugadores</p>
+            <p className="text-xl font-bold text-slate-100 font-mono drop-shadow-md">{players.length}</p>
           </div>
-          <div className="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            <p className="text-xs text-slate-500 mb-0.5">Pot total</p>
-            <p className="text-xl font-bold text-slate-100 font-mono">{totalPot.toFixed(2)}€</p>
+          <div className="bg-poker-dark/60 backdrop-blur-md rounded-xl p-3 border border-poker-light/30 shadow-inner">
+            <p className="text-xs text-emerald-200/60 mb-0.5 uppercase tracking-wider">Pot total</p>
+            <p className="text-xl font-bold text-gold-400 font-mono drop-shadow-md">{totalPot.toFixed(2)}€</p>
           </div>
-          <div className="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            <p className="text-xs text-slate-500 mb-0.5">En mesa</p>
+          <div className="bg-poker-dark/60 backdrop-blur-md rounded-xl p-3 border border-poker-light/30 shadow-inner">
+            <p className="text-xs text-emerald-200/60 mb-0.5 uppercase tracking-wider">En mesa</p>
             <p
-              className={`text-xl font-bold font-mono ${balanceInPlay > 0 ? 'text-emerald-400' : 'text-slate-400'
+              className={`text-xl font-bold font-mono drop-shadow-md ${balanceInPlay > 0 ? 'text-emerald-400' : 'text-slate-400'
                 }`}
             >
               {balanceInPlay.toFixed(2)}€
@@ -153,16 +218,16 @@ export default function GameDetail() {
 
       {/* Chip reconciliation warning */}
       {!isClosed && hasAnyActual && !isReconciled && (
-        <div className="mb-4 p-3 bg-red-900/30 border border-red-800/50 rounded-xl flex items-start gap-3">
-          <span className="flex-shrink-0 mt-0.5 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center">
-            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="mb-4 p-3 bg-chip-red/20 backdrop-blur-sm border border-chip-red/50 rounded-xl flex items-start gap-3 shadow-lg shadow-chip-red/10 animate-fade-in">
+          <span className="flex-shrink-0 mt-0.5 w-6 h-6 bg-gradient-to-br from-red-500 to-chip-red rounded-full flex items-center justify-center shadow-inner border border-red-400/30">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01M12 3l9.66 16.5H2.34L12 3z" />
             </svg>
           </span>
           <div className="min-w-0">
-            <p className="text-red-300 text-sm font-medium">Fichas no cuadran</p>
-            <p className="text-red-400/80 text-xs mt-0.5">
-              Diferencia de <span className="font-mono font-bold">{chipDifference > 0 ? '+' : ''}{chipDifference}</span> fichas
+            <p className="text-red-200 text-sm font-bold uppercase tracking-wide">Desajuste de Fichas</p>
+            <p className="text-red-300/90 text-xs mt-0.5 font-medium">
+              Diferencia de <span className="font-mono text-white text-sm bg-red-950/50 px-1.5 py-0.5 rounded-md mx-0.5">{chipDifference > 0 ? '+' : ''}{formatChips(chipDifference)}</span> fichas
               {playersNotReported > 0 && (
                 <span> · {playersNotReported} jugador{playersNotReported > 1 ? 'es' : ''} sin reportar</span>
               )}
@@ -173,9 +238,9 @@ export default function GameDetail() {
 
       {/* Players */}
       {players.length === 0 ? (
-        <div className="text-center py-10 border border-dashed border-slate-700 rounded-xl mb-4">
-          <p className="text-slate-500">Sin jugadores</p>
-          <p className="text-slate-600 text-sm mt-1">Añade jugadores para empezar</p>
+        <div className="text-center py-10 border-2 border-dashed border-poker-light/40 bg-poker-dark/30 rounded-2xl mb-4 backdrop-blur-sm">
+          <p className="text-emerald-200/50 text-lg uppercase tracking-widest font-bold">Mesa Vacía</p>
+          <p className="text-emerald-200/40 text-sm mt-2">Añade jugadores para empezar la partida</p>
         </div>
       ) : (
         <div className="space-y-3 mb-4">
@@ -185,6 +250,7 @@ export default function GameDetail() {
               player={player}
               isClosed={isClosed}
               chipValue={game.chip_value}
+              bigBlindValue={game.big_blind_value}
               onClick={() => setSelectedPlayer(player)}
             />
           ))}
@@ -196,10 +262,10 @@ export default function GameDetail() {
         <>
           <button
             onClick={() => setShowAddPlayer(true)}
-            className="w-full mb-3 py-3 border border-dashed border-slate-600 hover:border-emerald-600 text-slate-500 hover:text-emerald-400 rounded-xl text-sm font-medium transition-colors cursor-pointer min-h-[44px] flex items-center justify-center gap-2"
+            className="w-full mb-3 py-3 border-2 border-dashed border-poker-light hover:border-gold-500 bg-poker-dark/40 hover:bg-poker-dark/60 text-emerald-200 hover:text-gold-400 rounded-xl text-sm font-bold uppercase tracking-wider transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-2"
           >
             <UserIcon />
-            Añadir jugador
+            Añadir Jugador
           </button>
 
           {players.length > 0 && (
@@ -210,7 +276,7 @@ export default function GameDetail() {
                 }
               }}
               disabled={closeMutation.isPending}
-              className="w-full py-3 bg-slate-700 hover:bg-red-900/40 border border-slate-600 hover:border-red-800/50 text-slate-300 hover:text-red-400 rounded-xl font-medium transition-colors cursor-pointer min-h-[44px] text-sm disabled:opacity-50"
+              className="w-full py-3 bg-poker-dark/80 hover:bg-chip-red/20 border border-poker-light/50 hover:border-chip-red/50 text-slate-300 hover:text-red-400 rounded-xl font-bold uppercase tracking-wider transition-colors cursor-pointer min-h-[44px] text-sm disabled:opacity-50"
             >
               {closeMutation.isPending ? 'Cerrando...' : 'Cerrar partida'}
             </button>
@@ -222,7 +288,7 @@ export default function GameDetail() {
       {isClosed && (
         <Link
           to={`/games/${id}/settlement`}
-          className="block w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-colors cursor-pointer min-h-[44px] text-center text-sm"
+          className="block w-full py-3 bg-gold-600 hover:bg-gold-500 text-white rounded-xl font-bold uppercase tracking-wider shadow-lg shadow-gold-900/20 transition-all cursor-pointer min-h-[44px] text-center text-sm"
         >
           Ver liquidación
         </Link>
@@ -235,7 +301,7 @@ export default function GameDetail() {
             setTransactionDefaults({})
             setShowTransaction(true)
           }}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-full shadow-xl shadow-black/40 transition-all cursor-pointer flex items-center justify-center"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-b from-gold-400 to-gold-600 hover:from-gold-300 hover:to-gold-500 active:scale-95 text-white rounded-full shadow-lg shadow-black/50 border border-gold-300/40 transition-all cursor-pointer flex items-center justify-center z-50 animate-pop"
           aria-label="Registrar movimiento"
         >
           <PlusIcon />

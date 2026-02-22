@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getPlayerTransactions, deletePlayer, updatePlayerChips } from '../api/players'
 import { deleteTransaction } from '../api/transactions'
+import { formatChips } from '../utils/format'
 
 function CloseIcon() {
   return (
@@ -139,16 +140,20 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-slate-800 rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl max-h-[85vh] flex flex-col">
+      <div className="bg-poker-dark/95 backdrop-blur-xl rounded-2xl w-full max-w-md border border-poker-light/30 shadow-2xl shadow-black max-h-[85vh] flex flex-col animate-slide-up">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-700 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-slate-100">{player.name}</h2>
+        <div className="flex items-center justify-between p-5 border-b border-poker-light/20 flex-shrink-0 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
+          <h2 className="text-xl font-bold tracking-wide text-slate-100 flex items-center gap-2">
+            <span className="w-2 h-6 bg-gold-500 rounded-sm inline-block" />
+            {player.name}
+          </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-slate-700"
+            className="text-slate-400 hover:text-white transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-white/10 relative z-10"
             aria-label="Cerrar"
           >
             <CloseIcon />
@@ -173,7 +178,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
                   value={chipInput}
                   onChange={(e) => setChipInput(e.target.value)}
                   min="0"
-                  className="w-28 bg-slate-700 border border-slate-600 rounded-xl px-3 py-2 text-center text-slate-100 font-mono text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-28 bg-black/40 border-2 border-gold-500/50 rounded-xl px-3 py-2 text-center text-gold-400 font-mono text-3xl font-bold focus:outline-none focus:border-gold-400 focus:shadow-[0_0_15px_rgba(251,191,36,0.3)] transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSubmitChips()
                     if (e.key === 'Escape') setEditingChips(false)
@@ -182,7 +187,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
                 <button
                   onClick={handleSubmitChips}
                   disabled={updateChipsMutation.isPending}
-                  className="p-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50 min-h-[44px] min-w-[44px]"
+                  className="p-3 bg-gradient-to-b from-gold-400 to-gold-600 hover:from-gold-300 hover:to-gold-500 text-poker-dark rounded-xl transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50 min-h-[44px] min-w-[44px] shadow-lg"
                   aria-label="Confirmar fichas"
                 >
                   <CheckIcon />
@@ -195,7 +200,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
                   <button
                     onClick={() => handleStepChips(-10)}
                     disabled={currentChips <= 0 || updateChipsMutation.isPending}
-                    className="w-12 h-12 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default gap-0.5"
+                    className="w-12 h-12 rounded-full bg-white/5 hover:bg-chip-red/20 border border-white/10 hover:border-chip-red/50 text-slate-400 hover:text-red-400 flex items-center justify-center transition-all cursor-pointer disabled:opacity-30 disabled:cursor-default gap-0.5"
                     aria-label="Restar 10 fichas"
                   >
                     <span className="text-xs font-bold font-mono">-10</span>
@@ -210,21 +215,20 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
                     }
                   }}
                   disabled={isClosed}
-                  className={`font-mono text-5xl font-bold text-slate-100 tabular-nums px-3 py-1 rounded-xl transition-colors ${
-                    !isClosed
-                      ? 'hover:bg-slate-700/60 cursor-pointer'
-                      : 'cursor-default'
-                  }`}
+                  className={`font-mono text-5xl font-bold text-slate-100 tabular-nums px-4 py-2 border border-transparent rounded-xl transition-all ${!isClosed
+                    ? 'hover:bg-white/5 hover:border-white/10 hover:shadow-inner cursor-pointer'
+                    : 'cursor-default'
+                    }`}
                   aria-label={!isClosed ? 'Editar fichas' : undefined}
                 >
-                  {currentChips}
+                  {formatChips(currentChips)}
                 </button>
 
                 {!isClosed && (
                   <button
                     onClick={() => handleStepChips(10)}
                     disabled={updateChipsMutation.isPending}
-                    className="w-12 h-12 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer disabled:opacity-30 gap-0.5"
+                    className="w-12 h-12 rounded-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-slate-400 hover:text-emerald-400 flex items-center justify-center transition-all cursor-pointer disabled:opacity-30 gap-0.5"
                     aria-label="Sumar 10 fichas"
                   >
                     <span className="text-xs font-bold font-mono">+10</span>
@@ -246,34 +250,32 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
 
           {/* Secondary stats row */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="bg-slate-700/50 rounded-xl p-3 text-center">
-              <p className="text-slate-500 text-[10px] uppercase tracking-wide">Inversion</p>
-              <p className="font-mono font-bold text-slate-100 text-sm mt-0.5">{player.money_spent.toFixed(2)}€</p>
-              <p className="font-mono text-[10px] text-slate-500">{player.buy_in_chips} fichas</p>
+            <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 shadow-inner">
+              <p className="text-emerald-200/50 text-[10px] uppercase tracking-wider font-bold">Inversión</p>
+              <p className="font-mono font-bold text-slate-100 text-sm mt-1">{player.money_spent.toFixed(2)}€</p>
+              <p className="font-mono text-[10px] text-emerald-200/40">{formatChips(player.buy_in_chips)} fichas</p>
             </div>
-            <div className="bg-slate-700/50 rounded-xl p-3 text-center">
-              <p className="text-slate-500 text-[10px] uppercase tracking-wide">Profit / Loss</p>
+            <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 shadow-inner">
+              <p className="text-emerald-200/50 text-[10px] uppercase tracking-wider font-bold">P/L</p>
               <p
-                className={`font-mono font-bold text-sm mt-0.5 ${
-                  isPositive ? 'text-emerald-400' : isNegative ? 'text-red-400' : 'text-slate-400'
-                }`}
+                className={`font-mono font-black text-sm mt-1 drop-shadow-sm ${isPositive ? 'text-emerald-400' : isNegative ? 'text-chip-red' : 'text-slate-400'
+                  }`}
               >
                 {isPositive ? '+' : ''}{player.net_balance.toFixed(2)}€
               </p>
-              <p className="font-mono text-[10px] text-slate-500">cash-out: {player.cash_out_chips}</p>
+              <p className="font-mono text-[10px] text-emerald-200/40">cash-out: {formatChips(player.cash_out_chips)}</p>
             </div>
-            <div className="bg-slate-700/50 rounded-xl p-3 text-center">
-              <p className="text-slate-500 text-[10px] uppercase tracking-wide">ROI</p>
+            <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 shadow-inner">
+              <p className="text-emerald-200/50 text-[10px] uppercase tracking-wider font-bold">ROI</p>
               {pct !== null ? (
                 <p
-                  className={`font-mono font-bold text-sm mt-0.5 ${
-                    pct > 0.5 ? 'text-emerald-400' : pct < -0.5 ? 'text-red-400' : 'text-slate-400'
-                  }`}
+                  className={`font-mono font-black text-sm mt-1 drop-shadow-sm ${pct > 0.5 ? 'text-emerald-400' : pct < -0.5 ? 'text-chip-red' : 'text-slate-400'
+                    }`}
                 >
                   {pct > 0 ? '+' : ''}{pct.toFixed(1)}%
                 </p>
               ) : (
-                <p className="font-mono font-bold text-slate-600 text-sm mt-0.5">—</p>
+                <p className="font-mono font-bold text-slate-600 text-sm mt-1">—</p>
               )}
             </div>
           </div>
@@ -286,7 +288,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
                   onClose()
                   onRegisterMovement(player, 'buy_in')
                 }}
-                className="flex-1 py-2.5 bg-emerald-900/30 hover:bg-emerald-900/50 border border-emerald-800/50 text-emerald-400 rounded-xl font-medium transition-colors cursor-pointer min-h-[44px] text-sm flex items-center justify-center gap-1.5"
+                className="flex-1 py-3 bg-gradient-to-b from-emerald-600 to-poker-light hover:from-emerald-500 hover:to-emerald-600 border border-emerald-400/30 text-white rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer min-h-[44px] text-sm flex items-center justify-center gap-1.5 shadow-md shadow-emerald-900/30"
               >
                 <PlusIcon />
                 Buy-in
@@ -297,7 +299,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
                     onClose()
                     onRegisterMovement(player, 'cash_out')
                   }}
-                  className="flex-1 py-2.5 bg-red-600/20 hover:bg-red-600/30 border border-red-800/50 text-red-400 rounded-xl font-medium transition-colors cursor-pointer min-h-[44px] text-sm"
+                  className="flex-1 py-3 bg-gradient-to-b from-chip-red to-red-800 hover:from-red-500 hover:to-chip-red border border-red-400/30 text-white rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer min-h-[44px] text-sm shadow-md shadow-red-900/30"
                 >
                   Cash-out
                 </button>
@@ -307,47 +309,57 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
 
           {/* Transaction history */}
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">
               Movimientos
             </p>
             {isLoading ? (
               <p className="text-slate-500 text-sm text-center py-4">Cargando...</p>
             ) : transactions.length === 0 ? (
-              <p className="text-slate-600 text-sm text-center py-4">Sin movimientos</p>
+              <p className="text-emerald-100/30 text-sm text-center py-6 font-medium">Sin movimientos</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {transactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center gap-3 bg-slate-700/40 rounded-lg px-3 py-2.5"
+                    className="flex items-center justify-between p-3.5 bg-black/20 rounded-xl border border-white/5 shadow-inner hover:bg-black/30 transition-colors"
                   >
-                    <span
-                      className={`flex-shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${
-                        tx.type === 'buy_in'
-                          ? 'bg-emerald-900/60 text-emerald-400'
-                          : 'bg-red-900/60 text-red-400'
-                      }`}
-                    >
-                      {tx.type === 'buy_in' ? 'Buy-in' : 'Cash-out'}
-                    </span>
-                    <span className="font-mono text-slate-100 font-medium flex-1">
-                      {tx.chips} fichas
-                    </span>
-                    <span className="text-slate-600 text-xs">{formatTime(tx.created_at)}</span>
-                    {!isClosed && (
-                      <button
-                        onClick={() => {
-                          if (confirm('¿Anular este movimiento?')) {
-                            deleteTransactionMutation.mutate(tx.id)
-                          }
-                        }}
-                        disabled={deleteTransactionMutation.isPending}
-                        className="text-slate-600 hover:text-red-400 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-50"
-                        aria-label="Anular movimiento"
+                    <div>
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1 shadow-sm ${tx.type === 'buy_in'
+                          ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-red-950/40 text-chip-red border border-red-500/20'
+                          }`}
                       >
-                        <TrashIcon />
-                      </button>
-                    )}
+                        {tx.type === 'buy_in' ? 'Buy-in' : 'Cash-out'}
+                      </span>
+                      <p className="text-slate-300 font-mono text-lg font-bold flex items-center gap-1.5 mt-1">
+                        <span className={`inline-block w-2 h-2 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.4)] ${tx.type === 'buy_in' ? 'bg-gradient-to-br from-gray-300 to-gray-500 border border-gray-600' : 'bg-gradient-to-br from-red-400 to-chip-red border border-red-800'}`} />
+                        {formatChips(tx.chips)} <span className="text-emerald-200/40 text-xs font-medium ml-1">({(tx.chips * chipValue).toFixed(2)}€)</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-slate-500 text-xs hidden sm:block">
+                        {new Date(tx.created_at).toLocaleTimeString('es-ES', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                      {!isClosed && (
+                        <button
+                          onClick={() => {
+                            if (confirm('¿Anular este movimiento?')) {
+                              deleteTransactionMutation.mutate(tx.id)
+                            }
+                          }}
+                          disabled={deleteTransactionMutation.isPending}
+                          className="p-2 text-slate-500 hover:text-chip-red hover:bg-red-950/30 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                          aria-label="Anular movimiento"
+                        >
+                          <TrashIcon />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -357,7 +369,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
 
         {/* Footer — delete player (only active, no transactions) */}
         {!isClosed && transactions.length === 0 && (
-          <div className="p-5 border-t border-slate-700 flex-shrink-0">
+          <div className="p-5 border-t border-poker-light/20 flex-shrink-0 bg-black/10">
             <button
               onClick={() => {
                 if (confirm(`¿Eliminar a ${player.name} de la partida?`)) {
@@ -365,7 +377,7 @@ export default function PlayerModal({ player, gameId, isClosed, chipValue = 1, o
                 }
               }}
               disabled={deletePlayerMutation.isPending}
-              className="w-full py-2.5 text-slate-600 hover:text-red-400 transition-colors cursor-pointer text-sm min-h-[44px] flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="w-full py-2.5 text-slate-500 hover:text-chip-red transition-colors cursor-pointer text-sm font-bold uppercase tracking-wider min-h-[44px] flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
               <TrashIcon />
               Eliminar jugador
