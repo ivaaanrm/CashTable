@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+from backend.auth import require_game_session, require_host_session
 from backend.database import get_db
 from backend.models import Game, Player, Transaction
 from backend.schemas import PlayerCreate, PlayerOut, PlayerUpdateChips, TransactionOut
@@ -9,7 +10,9 @@ router = APIRouter(tags=["players"])
 
 
 @router.post("/games/{game_id}/players/", response_model=PlayerOut, status_code=201)
-def add_player(game_id: int, body: PlayerCreate, db: Session = Depends(get_db)):
+def add_player(game_id: int, body: PlayerCreate, request: Request, db: Session = Depends(get_db)):
+    require_game_session(db, request, game_id)
+
     game = db.query(Game).filter(Game.id == game_id).first()
     if not game:
         raise HTTPException(status_code=404, detail={"error": "NotFound", "message": f"Game {game_id} not found"})
@@ -27,10 +30,13 @@ def add_player(game_id: int, body: PlayerCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/players/{player_id}/chips", response_model=PlayerOut)
-def update_player_chips(player_id: int, body: PlayerUpdateChips, db: Session = Depends(get_db)):
+def update_player_chips(player_id: int, body: PlayerUpdateChips, request: Request, db: Session = Depends(get_db)):
     player = db.query(Player).filter(Player.id == player_id).first()
     if not player:
         raise HTTPException(status_code=404, detail={"error": "NotFound", "message": f"Player {player_id} not found"})
+
+    require_game_session(db, request, player.game_id)
+
     game = db.query(Game).filter(Game.id == player.game_id).first()
     if game and game.status == "closed":
         raise HTTPException(
@@ -44,10 +50,13 @@ def update_player_chips(player_id: int, body: PlayerUpdateChips, db: Session = D
 
 
 @router.get("/players/{player_id}/transactions", response_model=list[TransactionOut])
-def list_player_transactions(player_id: int, db: Session = Depends(get_db)):
+def list_player_transactions(player_id: int, request: Request, db: Session = Depends(get_db)):
     player = db.query(Player).filter(Player.id == player_id).first()
     if not player:
         raise HTTPException(status_code=404, detail={"error": "NotFound", "message": f"Player {player_id} not found"})
+
+    require_game_session(db, request, player.game_id)
+
     return (
         db.query(Transaction)
         .filter(Transaction.player_id == player_id)
@@ -57,10 +66,13 @@ def list_player_transactions(player_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/players/{player_id}", status_code=204)
-def delete_player(player_id: int, db: Session = Depends(get_db)):
+def delete_player(player_id: int, request: Request, db: Session = Depends(get_db)):
     player = db.query(Player).filter(Player.id == player_id).first()
     if not player:
         raise HTTPException(status_code=404, detail={"error": "NotFound", "message": f"Player {player_id} not found"})
+
+    require_host_session(db, request, player.game_id)
+
     if player.transactions:
         raise HTTPException(
             status_code=409,

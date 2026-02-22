@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+from backend.auth import require_game_session
 from backend.database import get_db
 from backend.models import Game, Player, Transaction
 from backend.schemas import TransactionCreate, TransactionOut
@@ -9,7 +10,9 @@ router = APIRouter(tags=["transactions"])
 
 
 @router.post("/transactions/", response_model=TransactionOut, status_code=201)
-def create_transaction(body: TransactionCreate, db: Session = Depends(get_db)):
+def create_transaction(body: TransactionCreate, request: Request, db: Session = Depends(get_db)):
+    require_game_session(db, request, body.game_id)
+
     game = db.query(Game).filter(Game.id == body.game_id).first()
     if not game:
         raise HTTPException(
@@ -62,7 +65,6 @@ def create_transaction(body: TransactionCreate, db: Session = Depends(get_db)):
                 },
             )
 
-    # Auto-adjust actual_chips if it is set
     if player.actual_chips is not None:
         if body.type == "buy_in":
             player.actual_chips += body.chips
@@ -82,7 +84,7 @@ def create_transaction(body: TransactionCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/transactions/{transaction_id}", status_code=204)
-def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
+def delete_transaction(transaction_id: int, request: Request, db: Session = Depends(get_db)):
     transaction = (
         db.query(Transaction)
         .with_for_update()
@@ -97,6 +99,8 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
                 "message": f"Transaction {transaction_id} not found",
             },
         )
+
+    require_game_session(db, request, transaction.game_id)
 
     player = (
         db.query(Player)

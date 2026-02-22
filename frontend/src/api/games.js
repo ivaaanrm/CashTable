@@ -1,52 +1,45 @@
-const BASE = '/api'
+import { apiRequest } from './http'
 
 export async function getGames() {
-  const res = await fetch(`${BASE}/games/`)
-  if (!res.ok) throw new Error('Error al cargar las partidas')
-  return res.json()
+  return apiRequest('/games/')
 }
 
 export async function createGame(data) {
-  const res = await fetch(`${BASE}/games/`, {
+  return apiRequest('/games/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error('Error al crear la partida')
-  return res.json()
+}
+
+export async function joinGameByPin(data) {
+  return apiRequest('/games/join', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
 }
 
 export async function getGame(id) {
-  const res = await fetch(`${BASE}/games/${id}`)
-  if (!res.ok) throw new Error('Error al cargar la partida')
-  return res.json()
+  return apiRequest(`/games/${id}`)
 }
 
 export async function updateGame(id, data) {
-  const res = await fetch(`${BASE}/games/${id}`, {
+  return apiRequest(`/games/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error('Error al actualizar la partida')
-  return res.json()
 }
 
 export async function closeGame(id) {
-  const res = await fetch(`${BASE}/games/${id}/close`, { method: 'PATCH' })
-  if (!res.ok) throw new Error('Error al cerrar la partida')
-  return res.json()
+  return apiRequest(`/games/${id}/close`, { method: 'PATCH' })
 }
 
 export async function deleteGame(id) {
-  const res = await fetch(`${BASE}/games/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('Error al borrar la partida')
-  // DELETE returns 204 No Content, so we don't try to parse JSON
-  return true
+  return apiRequest(`/games/${id}`, { method: 'DELETE' })
 }
 
 export async function getSettlement(id) {
-  const res = await fetch(`${BASE}/games/${id}/settlement`)
-  if (!res.ok) throw new Error('Error al calcular la liquidación')
-  return res.json()
+  return apiRequest(`/games/${id}/settlement`)
 }
