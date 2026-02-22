@@ -9,6 +9,18 @@ from pydantic import BaseModel, ConfigDict, field_validator
 class GameCreate(BaseModel):
     name: str
     chip_value: float = 1.0
+    big_blind_value: float | None = None
+
+
+class GameUpdate(BaseModel):
+    big_blind_value: float | None = None
+
+    @field_validator("big_blind_value")
+    @classmethod
+    def bb_must_be_positive(cls, v: float | None) -> float | None:
+        if v is not None and v <= 0:
+            raise ValueError("big_blind_value must be > 0")
+        return v
 
 
 class PlayerCreate(BaseModel):
@@ -48,6 +60,7 @@ class GameOut(BaseModel):
     id: int
     name: str
     chip_value: float
+    big_blind_value: float | None
     status: str
     created_at: datetime
     closed_at: datetime | None
@@ -72,6 +85,7 @@ class GameDetail(BaseModel):
     id: int
     name: str
     chip_value: float
+    big_blind_value: float | None
     status: str
     created_at: datetime
     closed_at: datetime | None

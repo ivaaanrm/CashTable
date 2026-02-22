@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getGame, closeGame } from '../api/games'
+import { getGame, closeGame, updateGame } from '../api/games'
 import PlayerCard from '../components/PlayerCard'
 import PlayerModal from '../components/PlayerModal'
 import TransactionModal from '../components/TransactionModal'
@@ -39,6 +39,8 @@ export default function GameDetail() {
   const [transactionDefaults, setTransactionDefaults] = useState({})
   const [showAddPlayer, setShowAddPlayer] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
+  const [editingBB, setEditingBB] = useState(false)
+  const [bbInput, setBbInput] = useState('')
 
   const gameId = parseInt(id)
 
@@ -52,6 +54,14 @@ export default function GameDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['game', gameId] })
       navigate(`/games/${id}/settlement`)
+    },
+  })
+
+  const bbMutation = useMutation({
+    mutationFn: (data) => updateGame(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['game', gameId] })
+      setEditingBB(false)
     },
   })
 
@@ -116,7 +126,12 @@ export default function GameDetail() {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-slate-100">{game.name}</h1>
-          <p className="text-slate-500 text-sm font-mono mt-0.5">{game.chip_value}€/ficha</p>
+          <p className="text-slate-500 text-sm font-mono mt-0.5">
+            {game.chip_value}€/ficha
+            {game.big_blind_value && (
+              <span className="ml-2 text-gold-400/70">· BB {game.big_blind_value}</span>
+            )}
+          </p>
         </div>
         <span
           className={`mt-1 flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${isClosed
@@ -127,6 +142,55 @@ export default function GameDetail() {
           {isClosed ? 'Cerrada' : 'Activa'}
         </span>
       </div>
+
+      {/* BB inline edit */}
+      {!isClosed && (
+        <div className="mb-4">
+          {editingBB ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                const val = parseFloat(bbInput)
+                if (val > 0) bbMutation.mutate({ big_blind_value: val })
+                else if (bbInput === '') bbMutation.mutate({ big_blind_value: null })
+              }}
+              className="flex items-center gap-2"
+            >
+              <label className="text-xs text-emerald-200/50 uppercase tracking-wider font-bold">BB</label>
+              <input
+                type="number"
+                value={bbInput}
+                onChange={(e) => setBbInput(e.target.value)}
+                min="1"
+                step="1"
+                placeholder="Ej: 100"
+                className="w-24 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-gold-400 font-mono font-bold focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 transition-all text-sm"
+                autoFocus
+              />
+              <button type="submit" className="text-xs text-emerald-400 hover:text-emerald-300 font-bold uppercase min-h-[44px] px-2 cursor-pointer">
+                OK
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingBB(false)}
+                className="text-xs text-slate-500 hover:text-slate-300 font-bold uppercase min-h-[44px] px-2 cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </form>
+          ) : (
+            <button
+              onClick={() => {
+                setBbInput(game.big_blind_value != null ? String(game.big_blind_value) : '')
+                setEditingBB(true)
+              }}
+              className="text-xs text-emerald-200/40 hover:text-gold-400 transition-colors cursor-pointer font-bold uppercase tracking-wider"
+            >
+              {game.big_blind_value ? `BB: ${game.big_blind_value} fichas ✎` : '+ Añadir Big Blind'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Stats */}
       {players.length > 0 && (
@@ -185,6 +249,7 @@ export default function GameDetail() {
               player={player}
               isClosed={isClosed}
               chipValue={game.chip_value}
+              bigBlindValue={game.big_blind_value}
               onClick={() => setSelectedPlayer(player)}
             />
           ))}

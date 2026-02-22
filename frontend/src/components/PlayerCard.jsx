@@ -1,4 +1,4 @@
-export default function PlayerCard({ player, isClosed, onClick, chipValue }) {
+export default function PlayerCard({ player, isClosed, onClick, chipValue, bigBlindValue }) {
   const balance = player.net_balance
   const isPositive = balance > 0.01
   const isNegative = balance < -0.01
@@ -24,6 +24,9 @@ export default function PlayerCard({ player, isClosed, onClick, chipValue }) {
             <span className="inline-block w-3 h-3 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 border border-gray-600 shadow-[inset_0_1px_rgba(255,255,255,0.4)]" />
             <span className="font-mono font-medium text-slate-200">{currentChips}</span>
             <span className="text-emerald-400/80 text-xs font-mono">({virtualMoney.toFixed(2)}€)</span>
+            {bigBlindValue > 0 && (
+              <span className="text-gold-400/70 text-xs font-mono">{(currentChips / bigBlindValue).toFixed(1)} BB</span>
+            )}
             <span className="text-poker-light mx-1">·</span>
             inv. <span className="font-mono text-slate-300">{player.money_spent.toFixed(2)}€</span>
           </p>

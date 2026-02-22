@@ -13,6 +13,7 @@ function CloseIcon() {
 export default function NewGameModal({ onClose }) {
   const [name, setName] = useState('')
   const [chipsPerEuro, setChipsPerEuro] = useState('1')
+  const [bigBlind, setBigBlind] = useState('')
   const queryClient = useQueryClient()
 
   const chipsNum = parseFloat(chipsPerEuro)
@@ -29,7 +30,10 @@ export default function NewGameModal({ onClose }) {
   function handleSubmit(e) {
     e.preventDefault()
     if (!name.trim() || !chipValue) return
-    mutation.mutate({ name: name.trim(), chip_value: chipValue })
+    const payload = { name: name.trim(), chip_value: chipValue }
+    const bb = parseFloat(bigBlind)
+    if (bb > 0) payload.big_blind_value = bb
+    mutation.mutate(payload)
   }
 
   return (
@@ -82,6 +86,22 @@ export default function NewGameModal({ onClose }) {
                 1€ = {chipsNum} ficha{chipsNum !== 1 ? 's' : ''} · 1 ficha = {chipValue.toFixed(4).replace(/\.?0+$/, '')}€
               </p>
             )}
+          </div>
+
+          <div>
+            <label htmlFor="big-blind" className="block text-xs font-bold uppercase tracking-wide text-emerald-200/50 mb-1.5">
+              Big Blind <span className="normal-case font-normal text-emerald-200/30">(opcional)</span>
+            </label>
+            <input
+              id="big-blind"
+              type="number"
+              value={bigBlind}
+              onChange={(e) => setBigBlind(e.target.value)}
+              min="1"
+              step="1"
+              placeholder="Ej: 100"
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-gold-400 font-mono text-xl font-bold focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 transition-all shadow-inner placeholder-slate-600"
+            />
           </div>
 
           {mutation.isError && (

@@ -9,6 +9,7 @@ from backend.schemas import (
     GameCreate,
     GameDetail,
     GameOut,
+    GameUpdate,
     PlayerStats,
     PlayerSummary,
     SettlementOut,
@@ -50,7 +51,7 @@ def _compute_player_stats(player: Player, chip_value: float) -> PlayerStats:
 
 @router.post("/games/", response_model=GameOut, status_code=201)
 def create_game(body: GameCreate, db: Session = Depends(get_db)):
-    game = Game(name=body.name, chip_value=body.chip_value)
+    game = Game(name=body.name, chip_value=body.chip_value, big_blind_value=body.big_blind_value)
     db.add(game)
     db.commit()
     db.refresh(game)
@@ -76,11 +77,27 @@ def get_game(game_id: int, db: Session = Depends(get_db)):
         id=game.id,
         name=game.name,
         chip_value=game.chip_value,
+        big_blind_value=game.big_blind_value,
         status=game.status,
         created_at=game.created_at,
         closed_at=game.closed_at,
         players=players_stats,
     )
+
+
+@router.patch("/games/{game_id}", response_model=GameOut)
+def update_game(game_id: int, body: GameUpdate, db: Session = Depends(get_db)):
+    game = db.query(Game).filter(Game.id == game_id).first()
+    if not game:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "NotFound", "message": f"Game {game_id} not found"},
+        )
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(game, field, value)
+    db.commit()
+    db.refresh(game)
+    return game
 
 
 @router.patch("/games/{game_id}/close", response_model=GameOut)
